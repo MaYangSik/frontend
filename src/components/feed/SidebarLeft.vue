@@ -25,7 +25,7 @@ const menuItems = [
 <template>
   <div class="h-full flex flex-col px-3 py-6 bg-white">
     <div class="px-2 mb-6">
-      <span class="text-lg font-bold tracking-tight">MaYangFeed</span>
+      <span class="text-lg font-bold tracking-tight">MaYangSik</span>
     </div>
 
     <nav class="flex-1 space-y-1">

@@ -71,21 +71,32 @@ const userExplorers = [
     </div>
 
     <!-- Explorers -->
-    <div class="px-6 py-3 border-b border-gray-100 flex items-center justify-between">
-      <div>
-        <p class="text-sm font-semibold text-gray-900">오늘의 탐험가</p>
-        <p class="text-xs text-gray-500">지금 책을 읽고 있는 사람들</p>
+ <!-- ✅ 수정된 '오늘의 탐험가' 부분 -->
+<div class="px-6 py-3 border-b border-gray-100">
+  <div class="mb-2">
+    <p class="text-sm font-semibold text-gray-900">오늘의 탐험가</p>
+    <p class="text-xs text-gray-500">지금 책을 읽고 있는 사람들</p>
+  </div>
+
+  <!-- 🔥 왼쪽 정렬 + 아바타 크기 확대 + 가로 스크롤 가능 -->
+  <div
+    class="flex items-center space-x-4 overflow-x-auto scrollbar-hide py-2"
+  >
+    <div
+      v-for="user in userExplorers"
+      :key="user.id"
+      class="flex flex-col items-center flex-shrink-0"
+    >
+      <div
+        class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl"
+      >
+        <span>{{ user.avatar }}</span>
       </div>
-      <div class="flex -space-x-2">
-        <div
-          v-for="user in userExplorers"
-          :key="user.id"
-          class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-lg border border-white"
-        >
-          <span>{{ user.avatar }}</span>
-        </div>
-      </div>
+      <p class="text-xs text-gray-600 mt-1">{{ user.name }}</p>
     </div>
+  </div>
+</div>
+
 
     <!-- Composer -->
     <div class="px-6 py-4 border-b border-gray-100">
