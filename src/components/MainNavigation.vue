@@ -39,9 +39,7 @@
           class="hidden items-center gap-2 rounded-full bg-gray-100 px-4 py-2 md:flex"
           @submit.prevent="onSearchSubmit"
         >
-          <span class="text-gray-400">
-            🔍
-          </span>
+          <span class="text-gray-400">🔍</span>
           <input
             v-model="searchQuery"
             type="text"
@@ -51,15 +49,13 @@
         </form>
 
         <!-- Notification -->
-        <div class="relative">
+        <div class="relative" v-if="isLoggedIn">
           <button
             class="relative flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-100"
             @click="toggleNotifications"
           >
             <span class="text-xl">🔔</span>
-            <span
-              class="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500"
-            />
+            <span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
           </button>
 
           <NotificationDropdown
@@ -69,27 +65,64 @@
           />
         </div>
 
-        <!-- Profile icon -->
-        <RouterLink
-          to="/profile/bookworm"
-          class="hidden h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-700 md:flex"
-        >
-          김
-        </RouterLink>
+        <!-- 로그인 전 -->
+        <div v-if="!isLoggedIn" class="flex items-center gap-2">
+          <RouterLink
+            to="/login"
+            class="rounded-full border border-gray-400 px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            로그인
+          </RouterLink>
+          <RouterLink
+            to="/signup"
+            class="rounded-full border border-gray-400 px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            회원가입
+          </RouterLink>
+        </div>
+
+        <!-- 로그인 후 -->
+        <div v-else class="flex items-center gap-3">
+          <RouterLink
+            to="/profile/bookworm"
+            class="hidden h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-700 md:flex"
+          >
+            {{ profileInitial }}
+          </RouterLink>
+          <button
+            @click="handleLogout"
+            class="rounded-full border border-gray-400 px-3 py-1 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            로그아웃
+          </button>
+        </div>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import NotificationDropdown from '@/components/NotificationDropdown.vue'
+import { useUserStore } from '@/stores/user'
+import { logout } from '@/api/user'
 
 const route = useRoute()
 const router = useRouter()
 const showNotifications = ref(false)
 const searchQuery = ref('')
+
+const store = useUserStore()
+
+onMounted(() => {
+  store.loadUser()
+})
+
+const isLoggedIn = computed(() => store.isLoggedIn)
+const profileInitial = computed(() =>
+  store.nickname ? store.nickname.charAt(0) : '미'
+)
 
 const toggleNotifications = () => {
   showNotifications.value = !showNotifications.value
@@ -99,6 +132,23 @@ const onSearchSubmit = () => {
   if (!searchQuery.value.trim()) return
   router.push({ name: 'search', query: { q: searchQuery.value.trim() } })
   showNotifications.value = false
+}
+
+const handleLogout = async () => {
+  try {
+    // ✅ 1️⃣ 백엔드 로그아웃 요청 (Refresh-Token 헤더 포함)
+    await logout(store.refreshToken)
+
+    // ✅ 2️⃣ 프론트 상태 초기화 (Pinia store)
+    store.logout()
+
+    // ✅ 3️⃣ 페이지 이동
+    alert('로그아웃 되었습니다.')
+    router.push('/login')
+  } catch (err) {
+    console.error('로그아웃 실패:', err)
+    alert('로그아웃 중 오류가 발생했습니다.')
+  }
 }
 
 </script>
