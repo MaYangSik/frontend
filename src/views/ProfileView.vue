@@ -78,17 +78,17 @@ import ReviewCard from '@/components/ReviewCard.vue'
 
 const reviews = [
   {
-    id: '1',
-    user: { name: '김독서', username: 'bookworm' },
-    book: { title: '이방인', author: '알베르 카뮈' },
-    content:
-      '소설의 첫 문장 "오늘, 엄마가 죽었다"는 정말 충격적이었습니다. 감정이 메마른 뫼르소의 시선으로 바라본 세상은 낯설면서도 어딘가 공감되는 부분이 있었어요.',
-    progress: 234,
-    tags: ['실존주의', '고전문학'],
-    likes: 42,
-    comments: 8,
-    shares: 15,
-    time: '2시간 전',
+    id: 'r1',
+    title: '5권: 관계가 어긋나는 순간',
+    body: '스포 없이 감정만 남겼습니다. 대화 톤이 급격히 변하면서 캐릭터가 보이는 단면이 인상적.',
+    authorNickname: '김독서',
+    authorId: 'bookworm',
+    createdAtLabel: '2시간 전',
+    contentTitle: '이방인',
+    categoryLabel: '도서',
+    myProgress: 5,
+    spoilerProtected: true,
+    tags: ['감정', '기록'],
   },
 ]
 </script>

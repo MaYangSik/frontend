@@ -13,3 +13,6 @@ export const logout = (refreshToken) =>
 
 // 회원가입
 export const signup = (data) => api.post('/users', data)
+
+// 사용자 검색 (ES)
+export const searchUsers = (payload) => api.post('/search/users', payload)
