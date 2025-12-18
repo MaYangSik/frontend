@@ -1,8 +1,11 @@
 import axios from 'axios'
 import { useUserStore } from '@/stores/user'
 
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL
+
 const api = axios.create({
-  baseURL: 'http://localhost:8080', // 백엔드 주소
+  baseURL: BASE_URL, // 백엔드 주소
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -22,40 +25,38 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// ✅ 응답 인터셉터: Access Token 만료 시 RefreshToken으로 재발급
+// 응답 인터셉터: Access Token 만료 시 RefreshToken으로 재발급
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const store = useUserStore()
     const originalRequest = error.config
 
+    const status = error.response?.status
+    const message = error.response?.data?.message
+
     // Access Token 만료 감지 (401) & 중복 재시도 방지
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (status === 401 && message === 'TOKEN_ERROR' && !originalRequest._retry) {
       originalRequest._retry = true
 
       try {
         // 새 Access Token 발급 요청
-        const refreshResponse = await axios.post(
-          `${api.defaults.baseURL}/auth/refresh`,
-          {},
-          {
-            headers: {
-              'Refresh-Token': store.refreshToken,
-            },
-          }
-        )
+        const refreshResponse = await api.post(
+          `/auth/refresh`,{},{
+           withCredentials: true,
+          })
 
         const newAccessToken = refreshResponse.data.accessToken
         store.accessToken = newAccessToken
 
-        // 🔄 로컬스토리지 갱신
+        // 로컬스토리지 갱신
         localStorage.setItem('user', JSON.stringify(store.$state))
 
         // 새 토큰으로 재요청
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
         return api(originalRequest)
       } catch (refreshError) {
-        console.error('🔒 토큰 재발급 실패:', refreshError)
+        console.error('토큰 재발급 실패:', refreshError)
 
         // Refresh Token도 만료된 경우 → 자동 로그아웃
         store.logout()

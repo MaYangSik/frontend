@@ -83,12 +83,13 @@
 
         <!-- 로그인 후 -->
         <div v-else class="flex items-center gap-3">
-          <RouterLink
-            to="/profile/bookworm"
-            class="hidden h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-700 md:flex"
-          >
-            {{ profileInitial }}
-          </RouterLink>
+        <RouterLink
+          :to="`/users/${user_id}`"
+          class="hidden h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-700 md:flex"
+        >
+          {{ profileInitial }}
+        </RouterLink>
+
           <button
             @click="handleLogout"
             class="rounded-full border border-gray-400 px-3 py-1 text-sm text-gray-700 hover:bg-gray-100"
@@ -115,6 +116,8 @@ const searchQuery = ref('')
 
 const store = useUserStore()
 
+const user_id = computed(() => store.userId)
+
 onMounted(() => {
   store.loadUser()
 })
@@ -136,18 +139,39 @@ const onSearchSubmit = () => {
 
 const handleLogout = async () => {
   try {
-    // ✅ 1️⃣ 백엔드 로그아웃 요청 (Refresh-Token 헤더 포함)
+  
     await logout(store.refreshToken)
 
-    // ✅ 2️⃣ 프론트 상태 초기화 (Pinia store)
-    store.logout()
+    console.log("정상 로그아웃 완료")
 
-    // ✅ 3️⃣ 페이지 이동
+  } catch (err) {
+
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      console.log('이미 만료된 세션 - 프론트 로그아웃 진행')
+    } else {
+      console.error('로그아웃 요청 실패:', err)
+    }
+
+  }finally{
+    store.logout() // 프론트 상태 초기화
     alert('로그아웃 되었습니다.')
     router.push('/login')
+  }
+
+  
+}
+
+
+const handleUserInfo = async () =>{
+    try {
+    await logout(store.refreshToken)
+
+    store.logout()
+
+    router.push('/login')
   } catch (err) {
-    console.error('로그아웃 실패:', err)
-    alert('로그아웃 중 오류가 발생했습니다.')
+    console.error('유저 정보 조회 실패:', err)
+    alert('정보 조회 중 오류가 발생했습니다.')
   }
 }
 

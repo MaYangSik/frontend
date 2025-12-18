@@ -6,19 +6,17 @@ export const useUserStore = defineStore('user', {
     nickname: null,
     userRole : null,
     accessToken: null,
-    refreshToken: null,
   }),
   getters: {
     isLoggedIn: (state) => !!state.accessToken,
   },
   actions: {
     login(data) {
-        console.log('✅ 로그인 응답 데이터:', data)  
+    console.log('✅ 로그인 응답 데이터:', data)  
       this.userId = data.userId
       this.nickname = data.nickname
       this.userRole = data.userRole
       this.accessToken = data.accessToken
-      this.refreshToken = data.refreshToken
       localStorage.setItem('user', JSON.stringify(this.$state))
     },
     loadUser() {
@@ -28,7 +26,6 @@ export const useUserStore = defineStore('user', {
     logout() {
       this.user = null
       this.accessToken = null
-      this.refreshToken = null
       localStorage.removeItem('user')
     },
   },

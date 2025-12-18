@@ -7,18 +7,27 @@ import WriteView from '@/views/WriteView.vue'
 import NotificationsView from '@/views/NotificationsView.vue'
 import SignUpView from '@/views/SignUpView.vue'
 import LoginView from '@/views/LoginView.vue'
+import UserProfileView from '@/views/ProfileEditView.vue'
+import FollowListView from '@/views/FollowListView.vue'
+import UserSettingsView from '@/views/UserSettingsView.vue'
 import { useUserStore } from '@/stores/user' 
+
 
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
   { path: '/ranking', name: 'ranking', component: RankingView },
-  { path: '/profile/:userId?', name: 'profile', component: ProfileView , meta: { requiresAuth: true }},
+  { path: '/users/:userId?/edit', name: 'profileEdit', component: UserProfileView, meta: { requiresAuth : true }},
+  { path: '/users/:userId?', name: 'profile', component: ProfileView, meta: { requiresAuth: true }},
   { path: '/search', name: 'search', component: SearchResultsView },
-  { path: '/write', name: 'write', component: WriteView , meta: { requiresAuth: true }},
+  { path: '/users/:userId?/write', name: 'write', component: WriteView , meta: { requiresAuth: true }},
   { path: '/notifications', name: 'notifications', component: NotificationsView },
   { path: '/login', name: 'login', component: LoginView},
   { path: '/signup', name: 'signup', component: SignUpView},
+  { path: '/users/:userId?/followers', name: 'followers', component: FollowListView, meta: {type: "followers", title:"팔로워"}},
+  { path: '/users/:userId?/followees', name: 'followees', component: FollowListView, meta: {type: "followees", title:"팔로잉"}},
+  { path: '/users/:userId?/settings', name: 'userSettings', component: UserSettingsView, meta:{requiresAuth: true}},
+  
 ]
 
 const router = createRouter({

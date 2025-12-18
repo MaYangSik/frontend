@@ -13,8 +13,7 @@ pnpm-lock.yaml
 # ⚙️ Environment Files
 # ----------------------------
 .env
-.env.local
-.env.*.local
+.env.*
 
 # ----------------------------
 # 🧱 Build Output

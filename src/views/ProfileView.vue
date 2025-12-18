@@ -1,94 +1,221 @@
 <template>
-  <div class="bg-white">
-    <!-- 커버 이미지 -->
-    <div
-      class="relative h-44 w-full bg-[url('/pattern-bg.png')] bg-repeat bg-[length:24px_24px] bg-gradient-to-r from-amber-100 to-yellow-100"
-    >
-      <!-- max-w-5xl 컨테이너 안으로 기준 변경 -->
-      <div class="mx-auto max-w-5xl relative h-full">
-        <!-- 프로필 이미지 (유저 이름 위쪽, x축 정렬선 맞춤) -->
-        <div
-          class="absolute bottom-0 left-4 translate-y-[40%] h-32 w-32 rounded-full border-4 border-white bg-gray-100 shadow-lg shadow-gray-200"
-        ></div>
-      </div>
-    </div>
+  <div class="min-h-screen bg-[#F1F0EC]">
+    <div class="mx-auto flex max-w-6xl gap-8 px-6 py-10">
+      <!-- 왼쪽: 프로필 사이드바 -->
+      <aside
+        class="sticky top-10 h-fit w-64 flex-shrink-0 rounded-2xl border border-[#EAE9E3] bg-white p-6 shadow-sm"
+      >
+        <div class="flex flex-col items-center text-center">
+          <!-- 프로필 이미지 -->
+          <div
+            class="h-20 w-20 rounded-full bg-gradient-to-br from-[#D9D5CA] to-[#F0EEE9] text-white text-2xl font-bold flex items-center justify-center shadow-sm"
+          >
+            {{ user.nickname.charAt(0) }}
+          </div>
 
-    <!-- 프로필 본문 -->
-    <div class="mx-auto max-w-5xl px-4 pb-10 md:px-6">
-      <!-- 프로필 헤더 -->
-      <section class="mt-24 flex items-end justify-between gap-6">
-        <div class="flex-1">
-          <h1 class="text-2xl font-bold text-gray-900">김독서</h1>
-          <p class="text-sm text-gray-500">@bookworm</p>
-          <p class="mt-2 text-sm text-gray-700">
-            책을 사랑하는 독자입니다. 주로 고전문학과 철학 서적을 읽습니다.
+          <!-- 닉네임 / 아이디 -->
+          <h1 class="mt-3 text-lg font-semibold text-[#2E2A24]">
+            {{ user.nickname }}
+          </h1>
+          <p class="text-xs text-gray-500">@{{ user.user_id }}</p>
+
+          <p class="mt-3 text-sm text-[#5E594F] leading-snug">
+            {{ user.bio }}
           </p>
 
-          <div class="mt-3 flex flex-wrap gap-4 text-xs text-gray-500">
-            <span>📍 서울, 한국</span>
-            <span>📅 가입일: 2023년 3월</span>
+          <!-- 팔로잉 / 팔로워 -->
+          <div class="mt-4 flex gap-3 text-xs text-gray-600">
+            <RouterLink
+              :to="`/users/${store.userId}/followers`"
+              class="hover:text-[#3C3832] hover:underline transition"
+            >
+              <strong>{{ followCount.followers }}</strong> 팔로워
+            </RouterLink>
+
+            <RouterLink
+              :to="`/users/${store.userId}/followees`"
+              class="hover:text-[#3C3832] hover:underline transition"
+            >
+              <strong>{{ followCount.followees }}</strong> 팔로잉
+            </RouterLink>
           </div>
 
-          <div class="mt-3 flex gap-4 text-sm text-gray-700">
-            <span><strong>245</strong> 팔로잉</span>
-            <span><strong>1823</strong> 팔로워</span>
+          <!-- 수정 버튼 -->
+          <div class="mt-6 flex w-full justify-center gap-2">
+            <RouterLink
+              :to="`/users/${store.userId}/edit`"
+              class="flex-1 rounded-full border border-[#DCD8D1] bg-[#F8F7F3] px-4 py-1.5 text-xs text-[#4B463B] hover:bg-[#EAE9E3] transition font-medium shadow-sm"
+            >
+              프로필 수정
+            </RouterLink>
+
+            <RouterLink
+              :to="`/users/${store.userId}/settings`"
+              class="flex-1 rounded-full border border-[#DCD8D1] bg-[#F8F7F3] px-4 py-1.5 text-xs text-[#4B463B] hover:bg-[#EAE9E3] transition font-medium shadow-sm"
+            >
+              설정
+            </RouterLink>
+          </div>
+
+          <hr class="my-6 w-full border-[#EAE9E3]" />
+
+          <div class="w-full text-left text-sm space-y-2">
+            <button class="w-full text-[#3A3731] font-medium">
+              📚 내 리뷰
+            </button>
+            <button
+              class="w-full text-[#6B675E] hover:text-[#2F2C27] transition"
+            >
+              💖 좋아요한 글
+            </button>
+            <button
+              class="w-full text-[#6B675E] hover:text-[#2F2C27] transition"
+            >
+              📖 내 서재
+            </button>
           </div>
         </div>
+      </aside>
 
-        <button
-          class="hidden rounded-full border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 md:inline-flex"
-        >
-          프로필 수정
-        </button>
-      </section>
+      <!-- 오른쪽: 리뷰 피드 -->
+      <main class="flex-1 flex justify-center">
+        <div class="w-full max-w-2xl space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-[#2E2A24]">📚 나의 리뷰</h2>
+            <div class="flex gap-2 text-xs text-gray-600">
+              <button
+                class="rounded-full border border-[#DDD9CF] px-3 py-1 hover:bg-[#EAE9E3] transition"
+              >
+                최신순
+              </button>
+              <button
+                class="rounded-full border border-[#DDD9CF] px-3 py-1 hover:bg-[#EAE9E3] transition"
+              >
+                좋아요순
+              </button>
+            </div>
+          </div>
 
-      <!-- 탭 -->
-      <section class="mt-10">
-        <div class="flex gap-6 border-b text-sm">
-          <button class="border-b-2 border-gray-900 pb-3 font-semibold text-gray-900">
-            게시물
-          </button>
-          <button class="pb-3 text-gray-500">히스토리</button>
-          <button class="pb-3 text-gray-500">읽은 책</button>
+          <!-- 리뷰 리스트 -->
+          <section>
+            <div
+              v-for="item in reviews"
+              :key="item.id"
+              class="rounded-xl border border-[#EAE9E3] bg-white p-5 shadow-sm hover:shadow-md transition-all"
+            >
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="text-base font-semibold text-[#2E2A24]">
+                    {{ item.book.title }}
+                  </h3>
+                  <p class="text-xs text-gray-500">{{ item.book.author }}</p>
+                </div>
+                <span
+                  class="rounded-full bg-[#F0EEE9] px-3 py-0.5 text-[11px] text-[#4B463B] border border-[#EAE9E3]"
+                >
+                  {{ item.progress }}p
+                </span>
+              </div>
+
+              <p class="mt-3 text-[13px] text-[#4B463B] leading-relaxed">
+                {{ item.content }}
+              </p>
+
+              <div class="mt-3 flex flex-wrap gap-1.5">
+                <span
+                  v-for="tag in item.tags"
+                  :key="tag"
+                  class="rounded-full bg-[#F7F6F3] px-2.5 py-0.5 text-[11px] text-[#5A564C] border border-[#EAE9E3]"
+                >
+                  #{{ tag }}
+                </span>
+              </div>
+
+              <div class="mt-3 flex justify-between text-[11px] text-gray-500">
+                <div class="flex gap-4">
+                  <span>❤️ {{ item.likes }}</span>
+                  <span>💬 {{ item.comments }}</span>
+                  <span>🔁 {{ item.shares }}</span>
+                </div>
+                <span>{{ item.time }}</span>
+              </div>
+            </div>
+          </section>
         </div>
-
-        <!-- 게시물 리스트 -->
-        <div class="mt-4 divide-y">
-          <ReviewCard v-for="item in reviews" :key="item.id" :review="item" />
-        </div>
-      </section>
-
-      <!-- 읽은 책 -->
-      <section class="mt-8">
-        <h2 class="mb-3 text-sm font-semibold text-gray-900">읽은 책</h2>
-        <div class="grid grid-cols-3 gap-3 md:grid-cols-5">
-          <div
-            v-for="n in 10"
-            :key="n"
-            class="h-32 w-full rounded-md bg-gray-100"
-          ></div>
-        </div>
-      </section>
+      </main>
     </div>
   </div>
 </template>
 
 <script setup>
-import ReviewCard from '@/components/ReviewCard.vue'
+import { ref, watch } from "vue";
+import { useUserStore } from "@/stores/user";
+import { getFollowCount, getUserInfo } from "@/api/user";
 
+const store = useUserStore();
+const followCount = ref({ followers: 0, followees: 0 });
+
+const user = ref({
+  userId: "",
+  nickname: "",
+  bio: "",
+  profile_image_url: "",
+});
+
+// ✅ store.userId를 직접 감시
+watch(
+  () => store.userId,
+  async (newUserId) => {
+    if (!newUserId) {
+      console.log("⚠️ userId 없음");
+      return;
+    }
+
+    console.log("✅ 감지된 userId:", newUserId);
+    try {
+      const followRes = await getFollowCount(newUserId);
+      followCount.value = followRes.data;
+
+      console.log("✅ followCount 불러오기 성공:", followRes.data);
+
+      const userRes = await getUserInfo(newUserId);
+      user.value = userRes.data;
+
+      console.log("✅ user data 불러오기 성공:", userRes.data);
+    } catch (err) {
+      console.error("❌ 팔로우 수 불러오기 실패:", err);
+    }
+  },
+  { immediate: true }
+);
+
+// 더미 리뷰
 const reviews = [
   {
-    id: 'r1',
-    title: '5권: 관계가 어긋나는 순간',
-    body: '스포 없이 감정만 남겼습니다. 대화 톤이 급격히 변하면서 캐릭터가 보이는 단면이 인상적.',
-    authorNickname: '김독서',
-    authorId: 'bookworm',
-    createdAtLabel: '2시간 전',
-    contentTitle: '이방인',
-    categoryLabel: '도서',
+    id: "r1",
+    title: "5권: 관계가 어긋나는 순간",
+    body: "스포 없이 감정만 남겼습니다. 대화 톤이 급격히 변하면서 캐릭터가 보이는 단면이 인상적.",
+    authorNickname: "김독서",
+    authorId: "bookworm",
+    createdAtLabel: "2시간 전",
+    contentTitle: "이방인",
+    categoryLabel: "도서",
     myProgress: 5,
     spoilerProtected: true,
-    tags: ['감정', '기록'],
+    tags: ["감정", "기록"],
   },
-]
+  {
+    id: "r2",
+    title: "리뷰 제목",
+    body: "리뷰 내용입니다. 강낭콩밥을 먹을래요. 계란후라이가 최고입니다.",
+    authorNickname: "닉네임",
+    authorId: "bookworm",
+    createdAtLabel: "2시간 전",
+    contentTitle: "이방인",
+    categoryLabel: "도서",
+    myProgress: 5,
+    spoilerProtected: true,
+    tags: ["감정", "기록"],
+  },
+];
 </script>
