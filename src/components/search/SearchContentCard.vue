@@ -9,6 +9,12 @@
             {{ categoryLabel }}
           </span>
           <span
+            v-if="item.myProgress"
+            class="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] text-gray-700"
+          >
+            <span>내 진행도 {{ item.myProgress.current }}{{ unitLabel }}</span>
+          </span>
+          <span
             v-if="item.isMine"
             class="inline-flex items-center rounded-full bg-gray-900 px-2 py-0.5 text-xs font-medium text-white"
           >
@@ -20,40 +26,28 @@
           {{ item.title }}
         </h3>
 
-        <p v-if="item.summary" class="mt-1 line-clamp-2 text-sm text-gray-600">
-          {{ item.summary }}
-        </p>
-        <p v-else class="mt-1 text-sm text-gray-500">
-          리뷰 {{ item.recordCount ?? 0 }}개
+        <p
+          v-if="item.contentAuthor"
+          class="mt-1 line-clamp-2 text-xs text-gray-400"
+        >
+          {{ item.contentAuthor }}
         </p>
 
         <div v-if="item.tags?.length" class="mt-3 flex flex-wrap gap-1.5">
-          <span
+          <button
             v-for="t in item.tags"
             :key="t"
-            class="rounded-full bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
+            type="button"
+            class="rounded-full bg-gray-50 px-2 py-0.5 text-xs text-gray-600 transition hover:bg-gray-100"
+            @click="emit('select-tag', t)"
           >
             #{{ t }}
-          </span>
+          </button>
         </div>
       </div>
 
       <div class="flex flex-col items-end gap-2">
-        <div
-          v-if="item.myProgress"
-          class="rounded-xl bg-gray-900 px-3 py-2 text-right text-xs text-white"
-          title="내 진행도"
-        >
-          <p class="font-medium">내가 읽은</p>
-          <p v-if="item.myProgress.total" class="mt-0.5">
-            {{ item.myProgress.current }} / {{ item.myProgress.total
-            }}{{ unitLabel }}
-          </p>
-          <p v-else class="mt-0.5">
-            {{ item.myProgress.current }}{{ unitLabel }}
-          </p>
-        </div>
-        <p class="text-xs text-gray-400">
+        <p v-if="item.lastRecordedAtLabel" class="text-xs text-gray-400">
           {{ item.lastRecordedAtLabel }}
         </p>
       </div>
@@ -63,6 +57,7 @@
       class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500"
     >
       <span>리뷰 {{ item.recordCount ?? 0 }}개</span>
+
       <template v-if="item.lastRecordedAtLabel">
         <span class="text-gray-300">·</span>
         <span>최근 활동 {{ item.lastRecordedAtLabel }}</span>
@@ -77,6 +72,8 @@ import { computed } from "vue";
 const props = defineProps({
   item: { type: Object, required: true },
 });
+
+const emit = defineEmits(["select-tag"]);
 
 const categoryLabel = computed(() => {
   const v = props.item.category;

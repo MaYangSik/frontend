@@ -12,6 +12,7 @@
           추천
         </button>
         <button
+          v-if="isLoggedIn"
           class="pb-3 pt-2 text-gray-400"
           :class="activeTab === 'following' ? 'border-b-2 border-gray-900 font-semibold text-gray-900' : 'border-transparent text-gray-500'"
           @click="activeTab = 'following'"
@@ -20,16 +21,14 @@
         </button>
       </div>
 
-      <!-- 필터 -->
-      <div class="mb-4 flex gap-3 text-xs">
-        <button class="rounded-full bg-gray-900 px-4 py-1.5 text-white">전체</button>
-        <button class="rounded-full bg-gray-100 px-4 py-1.5 text-gray-700">내 진행도 이하</button>
-        <button class="rounded-full bg-gray-100 px-4 py-1.5 text-gray-700">완독자</button>
-      </div>
-
       <!-- 리뷰 리스트 -->
       <div class="divide-y">
         <ReviewCard v-for="item in reviews" :key="item.id" :review="item" />
+        <p v-if="!isLoading && !reviews.length" class="py-8 text-center text-sm text-gray-500">
+          표시할 리뷰가 없습니다.
+        </p>
+        <div ref="sentinel" class="h-1"></div>
+        <p v-if="isLoadingMore" class="py-4 text-center text-xs text-gray-400">불러오는 중...</p>
       </div>
     </section>
 
@@ -39,38 +38,127 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import ReviewCard from '@/components/ReviewCard.vue'
-import HomeSidebar from '@/components/HomeSidebar.vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch } from "vue";
+import ReviewCard from "@/components/ReviewCard.vue";
+import HomeSidebar from "@/components/HomeSidebar.vue";
+import { useUserStore } from "@/stores/user";
+import { fetchHomeFeed } from "@/api/feed"; // TODO: 실제 API 경로에 맞춰 수정
 
-const activeTab = ref('recommend')
+const activeTab = ref("recommend");
+const reviews = ref([]);
+const isLoading = ref(false);
+const isLoadingMore = ref(false);
+const error = ref(null);
+const page = ref(0);
+const hasMore = ref(true);
+const size = 10;
+const sentinel = ref(null);
+let observer = null;
 
-const reviews = [
-  {
-    id: 'r1',
-    authorNickname: '김독서',
-    userId: 'bookworm',
-    title: '12화: 감정선 정리',
-    body: '주인공이 처음으로 갈등을 드러내는 장면. 앞으로의 선택을 가늠하기 좋은 포인트라 간단히 키워드만 남김.',
-    createdAtLabel: '2시간 전',
-    contentTitle: '전지적 독자 시점',
-    categoryLabel: '웹툰',
-    spoiler: true,
-    spoilerUntil: 18,
-    tags: ['감정', '기록'],
-  },
-  {
-    id: 'r2',
-    authorNickname: '이서평',
-    userId: 'readmore',
-    title: '8권: 전개가 말이 됨',
-    body: '초반에 깔아둔 복선이 8권에서 회수됨. 스포 없이도 읽은 사람은 알만한 감정 포인트.',
-    createdAtLabel: '5시간 전',
-    contentTitle: '데미안',
-    categoryLabel: '도서',
-    spoiler: false,
-    spoilerUntil: 8,
-    tags: ['복선', '감정선'],
-  },
-]
+const userStore = useUserStore();
+const isLoggedIn = computed(() => userStore.isLoggedIn);
+
+const formatDateLabel = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+};
+
+const normalizeList = (payload) => {
+  const list = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
+  return list.map((r) => {
+    const tagNames = Array.isArray(r.tags)
+      ? r.tags.map((t) => t?.tagName ?? t).filter(Boolean)
+      : [];
+    return {
+      id: String(r.reviewId ?? r.id ?? ""),
+      title: r.title,
+      body: r.content,
+      createdAtLabel: formatDateLabel(r.createdAt),
+      userId: r.userId,
+      authorNickname: r.nickname || r.userId,
+      contentTitle: r.contentName,
+      contentAuthor: r.contentAuthor,
+      contentCategoryId: r.contentCategoryId,
+      categoryLabel: "", // 필요시 매핑
+      spoiler: r.spoilerUntil != null && Number(r.spoilerUntil) > 0,
+      spoilerUntil: r.spoilerUntil,
+      tags: tagNames,
+    };
+  });
+};
+
+const loadFeed = async ({ append = false } = {}) => {
+  if (!append) {
+    isLoading.value = true;
+    hasMore.value = true;
+    page.value = 0;
+    reviews.value = [];
+  } else {
+    if (!hasMore.value || isLoadingMore.value) return;
+    isLoadingMore.value = true;
+  }
+
+  error.value = null;
+
+  try {
+    const targetPage = append ? page.value + 1 : 0;
+    const tab = activeTab.value;
+    const { data } = await fetchHomeFeed({ type: tab, page: targetPage, size });
+    const list = normalizeList(data);
+
+    if (append) {
+      reviews.value = reviews.value.concat(list);
+    } else {
+      reviews.value = list;
+    }
+
+    page.value = targetPage;
+    hasMore.value = list.length === size;
+  } catch (e) {
+    console.error("홈 피드 로드 실패", e);
+    error.value = e;
+  } finally {
+    if (append) {
+      isLoadingMore.value = false;
+    } else {
+      isLoading.value = false;
+    }
+  }
+};
+
+const startObserver = () => {
+  if (observer) observer.disconnect();
+  observer = new IntersectionObserver((entries) => {
+    const [entry] = entries;
+    if (entry.isIntersecting) {
+      loadFeed({ append: true });
+    }
+  });
+  if (sentinel.value) observer.observe(sentinel.value);
+};
+
+onMounted(() => {
+  userStore.loadUser();
+  loadFeed();
+  startObserver();
+});
+
+onBeforeUnmount(() => {
+  if (observer) observer.disconnect();
+});
+
+watch(activeTab, () => {
+  // 로그인하지 않은 상태에서 팔로잉 탭 클릭을 방지
+  if (activeTab.value === "following" && !isLoggedIn.value) {
+    activeTab.value = "recommend";
+    return;
+  }
+  loadFeed();
+});
 </script>

@@ -17,6 +17,8 @@ export const logout = (refreshToken) =>
 // 사용자 검색 (ES)
 export const searchUsers = (payload) => api.post("/search/users", payload);
 
+export const searchUsersPaged = (payload) => api.post("/search/users", payload);
+
 export const signup = (data) => api.post("/users", data); // 회원가입
 
 export const withdraw = () => api.delete("/users");

@@ -1,6 +1,8 @@
 <template>
   <header class="fixed inset-x-0 top-0 z-30 border-b bg-white/95 backdrop-blur">
-    <div class="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 md:px-6">
+    <div
+      class="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 md:px-6"
+    >
       <!-- Left: Logo -->
       <RouterLink to="/" class="text-xl font-bold text-gray-900">
         MaYangSik
@@ -11,7 +13,11 @@
         <RouterLink
           to="/"
           class="relative pb-3 pt-4 text-sm font-medium transition-colors"
-          :class="route.name === 'home' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+          :class="
+            route.name === 'home'
+              ? 'text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
+          "
         >
           홈
           <span
@@ -22,7 +28,11 @@
         <RouterLink
           to="/ranking"
           class="relative pb-3 pt-4 text-sm font-medium transition-colors"
-          :class="route.name === 'ranking' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+          :class="
+            route.name === 'ranking'
+              ? 'text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
+          "
         >
           랭킹
           <span
@@ -55,7 +65,9 @@
             @click="toggleNotifications"
           >
             <span class="text-xl">🔔</span>
-            <span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
+            <span
+              class="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500"
+            />
           </button>
 
           <NotificationDropdown
@@ -83,12 +95,12 @@
 
         <!-- 로그인 후 -->
         <div v-else class="flex items-center gap-3">
-        <RouterLink
-          :to="`/users/${user_id}`"
-          class="hidden h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-700 md:flex"
-        >
-          {{ profileInitial }}
-        </RouterLink>
+          <RouterLink
+            :to="`/users/${user_id}`"
+            class="hidden h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-700 md:flex"
+          >
+            {{ profileInitial }}
+          </RouterLink>
 
           <button
             @click="handleLogout"
@@ -103,76 +115,76 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter, RouterLink } from 'vue-router'
-import NotificationDropdown from '@/components/NotificationDropdown.vue'
-import { useUserStore } from '@/stores/user'
-import { logout } from '@/api/user'
+import { ref, computed, onMounted, watch } from "vue";
+import { useRoute, useRouter, RouterLink } from "vue-router";
+import NotificationDropdown from "@/components/NotificationDropdown.vue";
+import { useUserStore } from "@/stores/user";
+import { logout } from "@/api/user";
 
-const route = useRoute()
-const router = useRouter()
-const showNotifications = ref(false)
-const searchQuery = ref('')
+const route = useRoute();
+const router = useRouter();
+const showNotifications = ref(false);
+const searchQuery = ref("");
 
-const store = useUserStore()
+const store = useUserStore();
 
-const user_id = computed(() => store.userId)
+const user_id = computed(() => store.userId);
 
 onMounted(() => {
-  store.loadUser()
-})
+  store.loadUser();
+});
 
-const isLoggedIn = computed(() => store.isLoggedIn)
+watch(
+  () => route.query.q,
+  (q) => {
+    searchQuery.value = q ? String(q) : "";
+  },
+  { immediate: true }
+);
+
+const isLoggedIn = computed(() => store.isLoggedIn);
 const profileInitial = computed(() =>
-  store.nickname ? store.nickname.charAt(0) : '미'
-)
+  store.nickname ? store.nickname.charAt(0) : "미"
+);
 
 const toggleNotifications = () => {
-  showNotifications.value = !showNotifications.value
-}
+  showNotifications.value = !showNotifications.value;
+};
 
 const onSearchSubmit = () => {
-  if (!searchQuery.value.trim()) return
-  router.push({ name: 'search', query: { q: searchQuery.value.trim() } })
-  showNotifications.value = false
-}
+  if (!searchQuery.value.trim()) return;
+  router.push({ name: "search", query: { q: searchQuery.value.trim() } });
+  showNotifications.value = false;
+};
 
 const handleLogout = async () => {
   try {
-  
-    await logout(store.refreshToken)
+    await logout(store.refreshToken);
 
-    console.log("정상 로그아웃 완료")
-
+    console.log("정상 로그아웃 완료");
   } catch (err) {
-
     if (err.response?.status === 401 || err.response?.status === 403) {
-      console.log('이미 만료된 세션 - 프론트 로그아웃 진행')
+      console.log("이미 만료된 세션 - 프론트 로그아웃 진행");
     } else {
-      console.error('로그아웃 요청 실패:', err)
+      console.error("로그아웃 요청 실패:", err);
     }
-
-  }finally{
-    store.logout() // 프론트 상태 초기화
-    alert('로그아웃 되었습니다.')
-    router.push('/login')
+  } finally {
+    store.logout(); // 프론트 상태 초기화
+    alert("로그아웃 되었습니다.");
+    router.push("/login");
   }
+};
 
-  
-}
+const handleUserInfo = async () => {
+  try {
+    await logout(store.refreshToken);
 
+    store.logout();
 
-const handleUserInfo = async () =>{
-    try {
-    await logout(store.refreshToken)
-
-    store.logout()
-
-    router.push('/login')
+    router.push("/login");
   } catch (err) {
-    console.error('유저 정보 조회 실패:', err)
-    alert('정보 조회 중 오류가 발생했습니다.')
+    console.error("유저 정보 조회 실패:", err);
+    alert("정보 조회 중 오류가 발생했습니다.");
   }
-}
-
+};
 </script>

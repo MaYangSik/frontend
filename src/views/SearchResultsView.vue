@@ -12,28 +12,10 @@
                 <span class="font-medium text-gray-900">'{{ query }}'</span>
                 <span class="text-gray-300">·</span>
                 결과 {{ totalCount }}개
-                <span v-if="resultSize" class="text-gray-400">
-                  (최대 {{ resultSize }}개)</span
-                >
               </p>
             </div>
 
             <div class="flex items-center gap-2">
-              <label
-                class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
-              >
-                <span class="text-gray-500">표시</span>
-                <select
-                  class="bg-transparent text-sm outline-none"
-                  :value="resultSize"
-                  @change="onChangeSize"
-                >
-                  <option v-for="s in sizeOptions" :key="s" :value="s">
-                    {{ s }}
-                  </option>
-                </select>
-              </label>
-
               <button
                 type="button"
                 class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -101,10 +83,25 @@
                 </p>
                 <div class="divide-y divide-gray-100">
                   <SearchContentCard
-                    v-for="c in filteredContents"
+                    v-for="c in previewContents"
                     :key="c.id"
                     :item="c"
+                    @select-tag="selectTag"
                   />
+                </div>
+                <div
+                  v-if="filteredContents.length > previewContents.length"
+                  class="mt-1 mb-2 flex justify-center"
+                >
+                  <button
+                    type="button"
+                    class="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    @click="goToTab('contents')"
+                  >
+                    컨텐츠 더보기 ({{
+                      filteredContents.length - previewContents.length
+                    }})
+                  </button>
                 </div>
               </div>
 
@@ -116,10 +113,24 @@
                 </p>
                 <div class="divide-y divide-gray-100">
                   <ReviewCard
-                    v-for="r in filteredReviews"
+                    v-for="r in previewReviews"
                     :key="r.id"
                     :review="r"
                   />
+                </div>
+                <div
+                  v-if="filteredReviews.length > previewReviews.length"
+                  class="mt-3 flex justify-center"
+                >
+                  <button
+                    type="button"
+                    class="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    @click="goToTab('reviews')"
+                  >
+                    리뷰 더보기 ({{
+                      filteredReviews.length - previewReviews.length
+                    }})
+                  </button>
                 </div>
               </div>
 
@@ -131,12 +142,26 @@
                 </p>
                 <div class="divide-y divide-gray-100">
                   <SearchUserCard
-                    v-for="u in filteredUsers"
+                    v-for="u in previewUsers"
                     :key="u.userId"
                     :item="u"
                     :show-follow="true"
                     @toggle-follow="toggleFollow"
                   />
+                </div>
+                <div
+                  v-if="filteredUsers.length > previewUsers.length"
+                  class="mt-3 flex justify-center"
+                >
+                  <button
+                    type="button"
+                    class="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    @click="goToTab('users')"
+                  >
+                    사용자 더보기 ({{
+                      filteredUsers.length - previewUsers.length
+                    }})
+                  </button>
                 </div>
               </div>
             </template>
@@ -147,7 +172,15 @@
                   v-for="c in filteredContents"
                   :key="c.id"
                   :item="c"
+                  @select-tag="selectTag"
                 />
+                <div ref="contentSentinel" class="h-1"></div>
+                <p
+                  v-if="isLoadingMoreContents"
+                  class="py-3 text-center text-xs text-gray-400"
+                >
+                  불러오는 중...
+                </p>
               </div>
             </template>
 
@@ -158,6 +191,13 @@
                   :key="r.id"
                   :review="r"
                 />
+                <div ref="reviewSentinel" class="h-1"></div>
+                <p
+                  v-if="isLoadingMoreReviews"
+                  class="py-3 text-center text-xs text-gray-400"
+                >
+                  불러오는 중...
+                </p>
               </div>
             </template>
 
@@ -170,6 +210,13 @@
                   :show-follow="true"
                   @toggle-follow="toggleFollow"
                 />
+                <div ref="userSentinel" class="h-1"></div>
+                <p
+                  v-if="isLoadingMoreUsers"
+                  class="py-3 text-center text-xs text-gray-400"
+                >
+                  불러오는 중...
+                </p>
               </div>
             </template>
           </div>
@@ -198,7 +245,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from "vue";
+import { computed, reactive, ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import { useContentSearch } from "@/composables/useContentSearch";
@@ -217,12 +264,8 @@ const userStore = useUserStore();
 userStore.loadUser();
 
 const query = computed(() => String(route.query.q || ""));
-const resultSize = computed(() => {
-  const v = Number(route.query.size || 30);
-  if (!Number.isFinite(v)) return 30;
-  return Math.min(Math.max(v, 5), 100);
-});
-const sizeOptions = [10, 20, 30, 50];
+const RESULT_SIZE = 10;
+const resultSize = computed(() => RESULT_SIZE);
 
 // URL query와 상태 연동(최소): tab
 const allowedTabs = new Set(["all", "contents", "reviews", "users"]);
@@ -244,28 +287,46 @@ watch(activeTab, (next) => {
 
 const isFilterOpen = ref(false);
 
+// 페이지네이션 상태
+const contentPage = ref(0);
+const reviewPage = ref(0);
+const userPage = ref(0);
+const hasMoreContents = ref(true);
+const hasMoreReviews = ref(true);
+const hasMoreUsers = ref(true);
+const contentSentinel = ref(null);
+const reviewSentinel = ref(null);
+const userSentinel = ref(null);
+let observer = null;
+
 // -----------------------------
 // API data (Elasticsearch + DB)
 // -----------------------------
 // TODO: 서버에서 page/size/정렬 등 확장 시, querystring과 payload 구성도 함께 확장하세요.
 const {
   contents: rawContents,
+  total: totalContents,
   isLoading: isContentLoading,
   error: contentError,
   fetchContents,
 } = useContentSearch();
 const {
   reviews: rawReviews,
+  total: totalReviews,
   isLoading: isReviewLoading,
   error: reviewError,
   fetchReviews,
 } = useReviewSearch();
 const {
   users: rawUsers,
+  total: totalUsers,
   isLoading: isUserLoading,
   error: userError,
   fetchUsers,
 } = useUserSearch();
+const isLoadingMoreContents = ref(false);
+const isLoadingMoreReviews = ref(false);
+const isLoadingMoreUsers = ref(false);
 
 const stripHtml = (s) => String(s || "").replace(/<[^>]*>/g, "");
 
@@ -507,7 +568,7 @@ const normalizedContents = computed(() => {
     id: String(c.contentId),
     title: c.contentName,
     contentAuthor: c.contentAuthor || null,
-    summary: "", // TODO: 콘텐츠 소개/줄거리 등 DB 필드가 있다면 여기에서 표시
+    summary: "줄거리 내용", // TODO: 콘텐츠 소개/줄거리 등 DB 필드가 있다면 여기에서 표시
     tags: Array.isArray(c.tags) ? c.tags : [],
     category: categoryKeyFromId(c.contentCategoryId),
     recordCount: Number(c.reviewCount || 0),
@@ -582,7 +643,10 @@ const contentOptions = computed(() =>
   }))
 );
 
-const keyword = computed(() => query.value.trim().toLowerCase());
+// 검색어에서 앞의 #은 태그 검색용 접두어라 제거하고 비교한다.
+const keyword = computed(() =>
+  query.value.trim().replace(/^#/, "").toLowerCase()
+);
 
 const categoryAllowed = (category) => {
   if (!category || category === "unknown") return true;
@@ -622,6 +686,10 @@ const filteredContents = computed(() => {
       })
     );
 });
+
+const previewContents = computed(() => filteredContents.value.slice(0, 3));
+const previewReviews = computed(() => filteredReviews.value.slice(0, 6));
+const previewUsers = computed(() => filteredUsers.value.slice(0, 3));
 
 const filteredReviews = computed(() => {
   return normalizedReviews.value
@@ -673,13 +741,11 @@ const tabs = computed(() => [
     id: "all",
     label: "전체",
     count:
-      filteredContents.value.length +
-      filteredReviews.value.length +
-      filteredUsers.value.length,
+      totalContents.value + totalReviews.value + totalUsers.value,
   },
-  { id: "contents", label: "컨텐츠", count: filteredContents.value.length },
-  { id: "reviews", label: "리뷰", count: filteredReviews.value.length },
-  { id: "users", label: "사용자", count: filteredUsers.value.length },
+  { id: "contents", label: "컨텐츠", count: totalContents.value },
+  { id: "reviews", label: "리뷰", count: totalReviews.value },
+  { id: "users", label: "사용자", count: totalUsers.value },
 ]);
 
 const totalCount = computed(() => tabs.value[0].count);
@@ -832,7 +898,7 @@ const suggestedTags = computed(() => popularKeywords.value.slice(0, 10));
 const selectKeyword = (k) =>
   router.push({ name: "search", query: { ...route.query, q: k } });
 const selectTag = (t) =>
-  router.push({ name: "search", query: { ...route.query, q: t } });
+  router.push({ name: "search", query: { ...route.query, q: `#${t}` } });
 const selectContent = (c) => {
   filters.contentId = c.id;
   isFilterOpen.value = true;
@@ -846,11 +912,8 @@ const toggleFollow = (userId) => {
 // -----------------------------------
 // Fetch
 // -----------------------------------
-const runSearch = async () => {
+const baseContentParams = () => {
   const q = query.value.trim();
-  if (!q) return;
-
-  // TODO: backend paging/size 정책에 맞게 조정
   const size = resultSize.value;
   const selectedCats = Object.entries(filters.categories)
     .filter(([, v]) => v)
@@ -859,35 +922,110 @@ const runSearch = async () => {
     selectedCats.length === 1
       ? contentCategoryIdFromKey(selectedCats[0])
       : null;
+  return {
+    keyword: q,
+    contentCategoryId: singleCategoryId ?? undefined,
+    seenOnly: Boolean(filters.seenOnly),
+    size,
+  };
+};
 
+const baseReviewParams = () => {
+  const q = query.value.trim();
+  const size = resultSize.value;
   const myUserId = userStore.userId || undefined;
   const contentId = filters.contentId ? Number(filters.contentId) : undefined;
+  return {
+    keyword: q,
+    contentId,
+    userId: filters.myOnly ? myUserId : undefined,
+    seenOnly: Boolean(filters.seenOnly),
+    limitToMyProgress: Boolean(filters.limitToMyProgress),
+    onlySpoilerSafe: Boolean(filters.onlySpoilerSafe),
+    noSpoilerOnly: Boolean(filters.noSpoilerOnly),
+    size,
+    sort: "latest",
+  };
+};
 
-  await Promise.all([
-    fetchContents({
-      keyword: q,
-      contentCategoryId: singleCategoryId ?? undefined,
-      seenOnly: Boolean(filters.seenOnly),
-      page: 0,
-      size,
-    }),
-    fetchReviews({
-      keyword: q,
-      // NOTE: reviews index에 content_category_id가 없는 문서가 있을 수 있어(기존 데이터),
-      // 서버 필터로 걸면 결과가 비는 문제가 생길 수 있습니다.
-      // 카테고리 필터는 프론트단에서 우선 적용하고, ES 재색인 후 서버 필터를 켜는 것을 권장합니다.
-      contentId,
-      userId: filters.myOnly ? myUserId : undefined,
-      seenOnly: Boolean(filters.seenOnly),
-      limitToMyProgress: Boolean(filters.limitToMyProgress),
-      onlySpoilerSafe: Boolean(filters.onlySpoilerSafe),
-      noSpoilerOnly: Boolean(filters.noSpoilerOnly),
-      page: 0,
-      size,
-      sort: "latest",
-    }),
-    fetchUsers({ keyword: q, page: 0, size }),
-  ]);
+const baseUserParams = () => {
+  const q = query.value.trim();
+  const size = resultSize.value;
+  return { keyword: q, size };
+};
+
+const loadContents = async ({ append = false } = {}) => {
+  if (append && (!hasMoreContents.value || isLoadingMoreContents.value))
+    return;
+  const page = append ? contentPage.value + 1 : 0;
+  const params = { ...baseContentParams(), page, append };
+  if (append) isLoadingMoreContents.value = true;
+  const list = await fetchContents(params);
+  contentPage.value = page;
+  hasMoreContents.value = list.length === resultSize.value;
+  if (append) isLoadingMoreContents.value = false;
+};
+
+const loadReviews = async ({ append = false } = {}) => {
+  if (append && (!hasMoreReviews.value || isLoadingMoreReviews.value)) return;
+  const page = append ? reviewPage.value + 1 : 0;
+  const params = { ...baseReviewParams(), page, append };
+  if (append) isLoadingMoreReviews.value = true;
+  const list = await fetchReviews(params);
+  reviewPage.value = page;
+  hasMoreReviews.value = list.length === resultSize.value;
+  if (append) isLoadingMoreReviews.value = false;
+};
+
+const loadUsers = async ({ append = false } = {}) => {
+  if (append && (!hasMoreUsers.value || isLoadingMoreUsers.value)) return;
+  const page = append ? userPage.value + 1 : 0;
+  const params = { ...baseUserParams(), page, append };
+  if (append) isLoadingMoreUsers.value = true;
+  const list = await fetchUsers(params);
+  userPage.value = page;
+  hasMoreUsers.value = list.length === resultSize.value;
+  if (append) isLoadingMoreUsers.value = false;
+};
+
+const resetPagination = () => {
+  contentPage.value = 0;
+  reviewPage.value = 0;
+  userPage.value = 0;
+  hasMoreContents.value = true;
+  hasMoreReviews.value = true;
+  hasMoreUsers.value = true;
+};
+
+const attachObserver = () => {
+  if (observer) observer.disconnect();
+  observer = new IntersectionObserver((entries) => {
+    const [entry] = entries;
+    if (!entry?.isIntersecting) return;
+    if (activeTab.value === "contents" && hasMoreContents.value) {
+      loadContents({ append: true });
+    } else if (activeTab.value === "reviews" && hasMoreReviews.value) {
+      loadReviews({ append: true });
+    } else if (activeTab.value === "users" && hasMoreUsers.value) {
+      loadUsers({ append: true });
+    }
+  });
+  const target =
+    activeTab.value === "contents"
+      ? contentSentinel.value
+      : activeTab.value === "reviews"
+      ? reviewSentinel.value
+      : userSentinel.value;
+  if (target) observer.observe(target);
+};
+
+const runSearch = async () => {
+  const q = query.value.trim();
+  if (!q) return;
+  resetPagination();
+  await Promise.all([loadContents(), loadReviews(), loadUsers()]);
+  await nextTick();
+  attachObserver();
 };
 
 let searchTimer = null;
@@ -910,8 +1048,25 @@ const anyError = computed(
   () => contentError.value || reviewError.value || userError.value
 );
 
-const onChangeSize = (e) => {
-  const next = Number(e.target.value);
-  router.replace({ query: { ...route.query, size: String(next) } });
+const goToTab = (tabId) => {
+  if (!["all", "contents", "reviews", "users"].includes(tabId)) return;
+  router.replace({ query: { ...route.query, tab: tabId } });
 };
+
+onMounted(async () => {
+  await nextTick();
+  attachObserver();
+});
+
+onBeforeUnmount(() => {
+  if (observer) observer.disconnect();
+});
+
+watch(
+  () => activeTab.value,
+  async () => {
+    await nextTick();
+    attachObserver();
+  }
+);
 </script>
