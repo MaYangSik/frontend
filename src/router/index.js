@@ -10,6 +10,7 @@ import LoginView from '@/views/LoginView.vue'
 import UserProfileView from '@/views/ProfileEditView.vue'
 import FollowListView from '@/views/FollowListView.vue'
 import UserSettingsView from '@/views/UserSettingsView.vue'
+import ReviewDetailView from '@/views/ReviewDetailView.vue'
 import { useUserStore } from '@/stores/user' 
 
 
@@ -20,7 +21,8 @@ const routes = [
   { path: '/users/:userId?/edit', name: 'profileEdit', component: UserProfileView, meta: { requiresAuth : true }},
   { path: '/users/:userId?', name: 'profile', component: ProfileView, meta: { requiresAuth: true }},
   { path: '/search', name: 'search', component: SearchResultsView },
-  { path: '/users/:userId?/write', name: 'write', component: WriteView , meta: { requiresAuth: true }},
+  { path: '/reviews/write', name: 'write', component: WriteView , meta: { requiresAuth: true }},
+  { path: '/reviews/:reviewId', name: 'reviewDetail', component: ReviewDetailView },
   { path: '/notifications', name: 'notifications', component: NotificationsView },
   { path: '/login', name: 'login', component: LoginView},
   { path: '/signup', name: 'signup', component: SignUpView},

@@ -6,6 +6,7 @@ export const useUserStore = defineStore('user', {
     nickname: null,
     userRole : null,
     accessToken: null,
+    recentReviews: [],
   }),
   getters: {
     isLoggedIn: (state) => !!state.accessToken,
@@ -17,6 +18,7 @@ export const useUserStore = defineStore('user', {
       this.nickname = data.nickname
       this.userRole = data.userRole
       this.accessToken = data.accessToken
+      this.recentReviews = data.recentReviews || []
       localStorage.setItem('user', JSON.stringify(this.$state))
     },
     loadUser() {

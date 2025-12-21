@@ -1,6 +1,6 @@
 <template>
   <article class="py-5">
-    <div class="flex gap-3">
+    <div class="flex gap-3 cursor-pointer" @click="goDetail">
       <!-- Avatar -->
       <div
         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-700"
@@ -61,26 +61,36 @@
           </div>
         </div>
 
-        <button
-          v-if="isSpoiler"
-          type="button"
-          class="text-xs text-amber-700 underline"
-          @click="toggleReveal"
-        >
-          {{ revealed ? "스포일러 숨기기" : "스포일러 보기" }}
-        </button>
-
-        <div
-          v-if="review.tags?.length"
-          class="flex flex-wrap gap-1.5 text-xs text-gray-600"
-        >
-          <span
-            v-for="t in review.tags"
-            :key="t"
-            class="rounded-full bg-gray-100 px-2 py-0.5"
-          >
-            #{{ t }}
-          </span>
+        <div class="flex flex-wrap items-center gap-y-2 text-xs text-gray-500">
+          <div v-if="review.tags?.length" class="flex flex-wrap gap-1.5 text-gray-600">
+            <span
+              v-for="t in review.tags"
+              :key="t"
+              class="rounded-full bg-gray-100 px-2 py-0.5"
+            >
+              #{{ t }}
+            </span>
+          </div>
+          <div class="flex w-full items-center justify-between gap-3">
+            <div class="flex items-center gap-3 text-gray-600">
+              <span class="inline-flex items-center gap-1">
+                <span class="text-xs uppercase tracking-wide">조회수</span>
+                <span>{{ review.viewCount ?? 0 }}</span>
+              </span>
+              <span class="inline-flex items-center gap-1">
+                <span class="text-xs uppercase tracking-wide">좋아요</span>
+                <span>{{ review.likeCount ?? 0 }}</span>
+              </span>
+            </div>
+            <button
+              v-if="isSpoiler"
+              type="button"
+              class="text-amber-700 underline"
+              @click.stop="toggleReveal"
+            >
+              {{ revealed ? "스포일러 숨기기" : "스포일러 보기" }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -89,6 +99,7 @@
 
 <script setup>
 import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 
 const props = defineProps({
   review: {
@@ -100,6 +111,12 @@ const props = defineProps({
 const revealed = ref(false);
 const toggleReveal = () => {
   revealed.value = !revealed.value;
+};
+
+const router = useRouter();
+const goDetail = () => {
+  if (!props.review?.id) return;
+  router.push({ name: "reviewDetail", params: { reviewId: props.review.id } });
 };
 
 const initial = computed(() => {

@@ -51,8 +51,46 @@
           </div>
         </header>
 
-        <!-- Tabs -->
-        <SearchTabs v-model="activeTab" :tabs="tabs" />
+        <!-- Tabs & Sort -->
+        <div class="flex items-center justify-between">
+          <SearchTabs v-model="activeTab" :tabs="tabs" />
+          <div v-if="activeTab === 'contents'" class="flex gap-2 text-xs text-gray-600">
+            <button
+              type="button"
+              class="rounded-full border px-3 py-1"
+              :class="contentSort === 'latest' ? 'border-gray-900 text-gray-900' : 'border-gray-200'"
+              @click="setContentSort('latest')"
+            >
+              최신순
+            </button>
+            <button
+              type="button"
+              class="rounded-full border px-3 py-1"
+              :class="contentSort === 'popular' ? 'border-gray-900 text-gray-900' : 'border-gray-200'"
+              @click="setContentSort('popular')"
+            >
+              좋아요순
+            </button>
+          </div>
+          <div v-else-if="activeTab === 'reviews'" class="flex gap-2 text-xs text-gray-600">
+            <button
+              type="button"
+              class="rounded-full border px-3 py-1"
+              :class="reviewSort === 'latest' ? 'border-gray-900 text-gray-900' : 'border-gray-200'"
+              @click="setReviewSort('latest')"
+            >
+              최신순
+            </button>
+            <button
+              type="button"
+              class="rounded-full border px-3 py-1"
+              :class="reviewSort === 'popular' ? 'border-gray-900 text-gray-900' : 'border-gray-200'"
+              @click="setReviewSort('popular')"
+            >
+              좋아요순
+            </button>
+          </div>
+        </div>
 
         <!-- Results -->
         <div class="mt-4">
@@ -294,6 +332,8 @@ const userPage = ref(0);
 const hasMoreContents = ref(true);
 const hasMoreReviews = ref(true);
 const hasMoreUsers = ref(true);
+const contentSort = ref("latest");
+const reviewSort = ref("latest");
 const contentSentinel = ref(null);
 const reviewSentinel = ref(null);
 const userSentinel = ref(null);
@@ -927,6 +967,7 @@ const baseContentParams = () => {
     contentCategoryId: singleCategoryId ?? undefined,
     seenOnly: Boolean(filters.seenOnly),
     size,
+    sort: contentSort.value,
   };
 };
 
@@ -944,7 +985,7 @@ const baseReviewParams = () => {
     onlySpoilerSafe: Boolean(filters.onlySpoilerSafe),
     noSpoilerOnly: Boolean(filters.noSpoilerOnly),
     size,
-    sort: "latest",
+    sort: reviewSort.value,
   };
 };
 
@@ -1051,6 +1092,18 @@ const anyError = computed(
 const goToTab = (tabId) => {
   if (!["all", "contents", "reviews", "users"].includes(tabId)) return;
   router.replace({ query: { ...route.query, tab: tabId } });
+};
+
+const setContentSort = (sort) => {
+  if (sort === contentSort.value) return;
+  contentSort.value = sort;
+  loadContents();
+};
+
+const setReviewSort = (sort) => {
+  if (sort === reviewSort.value) return;
+  reviewSort.value = sort;
+  loadReviews();
 };
 
 onMounted(async () => {
