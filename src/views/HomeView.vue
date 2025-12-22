@@ -12,6 +12,7 @@
           추천
         </button>
         <button
+          v-if="isLoggedIn"
           class="pb-3 pt-2 text-gray-400"
           :class="activeTab === 'following' ? 'border-b-2 border-gray-900 font-semibold text-gray-900' : 'border-transparent text-gray-500'"
           @click="activeTab = 'following'"
@@ -20,16 +21,14 @@
         </button>
       </div>
 
-      <!-- 필터 -->
-      <div class="mb-4 flex gap-3 text-xs">
-        <button class="rounded-full bg-gray-900 px-4 py-1.5 text-white">전체</button>
-        <button class="rounded-full bg-gray-100 px-4 py-1.5 text-gray-700">내 진행도 이하</button>
-        <button class="rounded-full bg-gray-100 px-4 py-1.5 text-gray-700">완독자</button>
-      </div>
-
       <!-- 리뷰 리스트 -->
       <div class="divide-y">
         <ReviewCard v-for="item in reviews" :key="item.id" :review="item" />
+        <p v-if="!isLoading && !reviews.length" class="py-8 text-center text-sm text-gray-500">
+          표시할 리뷰가 없습니다.
+        </p>
+        <div ref="sentinel" class="h-1"></div>
+        <p v-if="isLoadingMore" class="py-4 text-center text-xs text-gray-400">불러오는 중...</p>
       </div>
     </section>
 
@@ -39,38 +38,127 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import ReviewCard from '@/components/ReviewCard.vue'
-import HomeSidebar from '@/components/HomeSidebar.vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch } from "vue";
+import ReviewCard from "@/components/ReviewCard.vue";
+import HomeSidebar from "@/components/HomeSidebar.vue";
+import { useUserStore } from "@/stores/user";
+import { fetchHomeFeed } from "@/api/feed"; // TODO: 실제 API 경로에 맞춰 수정
 
-const activeTab = ref('recommend')
+const activeTab = ref("recommend");
+const reviews = ref([]);
+const isLoading = ref(false);
+const isLoadingMore = ref(false);
+const error = ref(null);
+const page = ref(0);
+const hasMore = ref(true);
+const size = 10;
+const sentinel = ref(null);
+let observer = null;
 
-const reviews = [
-  {
-    id: '1',
-    user: { name: '김독서', username: 'bookworm' },
-    book: { title: '이방인', author: '알베르 카뮈' },
-    content:
-      '소설의 첫 문장 "오늘, 엄마가 죽었다"는 정말 충격적이었습니다. 감정이 메마른 뫼르소의 시선으로 바라본 세상은 낯설면서도 어딘가 공감되는 부분이 있었어요. 우리는 얼마나 사회적 기대에 맞춰 살아가는지 돌아보게 되네요.',
-    progress: 234,
-    tags: ['실존주의', '고전문학'],
-    likes: 42,
-    comments: 8,
-    shares: 15,
-    time: '2시간 전',
-  },
-  {
-    id: '2',
-    user: { name: '이서평', username: 'readmore' },
-    book: { title: '1984', author: '조지 오웰' },
-    content:
-      '빅 브라더가 지배하는 사회. 생각보다 현대 사회와 닮아있어서 소름 돋았습니다. 감시 카메라, SNS 검열... 우리는 모르는 사이에 오웰의 디스토피아에 살고 있는 건 아닐까요?',
-    progress: 189,
-    tags: ['디스토피아', 'SF'],
-    likes: 35,
-    comments: 6,
-    shares: 12,
-    time: '5시간 전',
-  },
-]
+const userStore = useUserStore();
+const isLoggedIn = computed(() => userStore.isLoggedIn);
+
+const formatDateLabel = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+};
+
+const normalizeList = (payload) => {
+  const list = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
+  return list.map((r) => {
+    const tagNames = Array.isArray(r.tags)
+      ? r.tags.map((t) => t?.tagName ?? t).filter(Boolean)
+      : [];
+    return {
+      id: String(r.reviewId ?? r.id ?? ""),
+      title: r.title,
+      body: r.content,
+      createdAtLabel: formatDateLabel(r.createdAt),
+      userId: r.userId,
+      authorNickname: r.nickname || r.userId,
+      contentTitle: r.contentName,
+      contentAuthor: r.contentAuthor,
+      contentCategoryId: r.contentCategoryId,
+      categoryLabel: "", // 필요시 매핑
+      spoiler: r.spoilerUntil != null && Number(r.spoilerUntil) > 0,
+      spoilerUntil: r.spoilerUntil,
+      tags: tagNames,
+    };
+  });
+};
+
+const loadFeed = async ({ append = false } = {}) => {
+  if (!append) {
+    isLoading.value = true;
+    hasMore.value = true;
+    page.value = 0;
+    reviews.value = [];
+  } else {
+    if (!hasMore.value || isLoadingMore.value) return;
+    isLoadingMore.value = true;
+  }
+
+  error.value = null;
+
+  try {
+    const targetPage = append ? page.value + 1 : 0;
+    const tab = activeTab.value;
+    const { data } = await fetchHomeFeed({ type: tab, page: targetPage, size });
+    const list = normalizeList(data);
+
+    if (append) {
+      reviews.value = reviews.value.concat(list);
+    } else {
+      reviews.value = list;
+    }
+
+    page.value = targetPage;
+    hasMore.value = list.length === size;
+  } catch (e) {
+    console.error("홈 피드 로드 실패", e);
+    error.value = e;
+  } finally {
+    if (append) {
+      isLoadingMore.value = false;
+    } else {
+      isLoading.value = false;
+    }
+  }
+};
+
+const startObserver = () => {
+  if (observer) observer.disconnect();
+  observer = new IntersectionObserver((entries) => {
+    const [entry] = entries;
+    if (entry.isIntersecting) {
+      loadFeed({ append: true });
+    }
+  });
+  if (sentinel.value) observer.observe(sentinel.value);
+};
+
+onMounted(() => {
+  userStore.loadUser();
+  loadFeed();
+  startObserver();
+});
+
+onBeforeUnmount(() => {
+  if (observer) observer.disconnect();
+});
+
+watch(activeTab, () => {
+  // 로그인하지 않은 상태에서 팔로잉 탭 클릭을 방지
+  if (activeTab.value === "following" && !isLoggedIn.value) {
+    activeTab.value = "recommend";
+    return;
+  }
+  loadFeed();
+});
 </script>

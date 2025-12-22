@@ -1,71 +1,134 @@
 <template>
-  <article class="py-6">
-    <!-- 사용자 정보 -->
-    <header class="mb-3 flex items-center gap-3 text-sm text-gray-500">
-      <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-700">
-        {{ review.user.name.charAt(0) }}
+  <article class="py-5">
+    <div class="flex gap-3">
+      <!-- Avatar -->
+      <div
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-700"
+      >
+        {{ initial }}
       </div>
-      <div class="flex flex-col">
-        <span class="font-medium text-gray-900">{{ review.user.name }}</span>
-        <span class="text-xs text-gray-400">@{{ review.user.username }} · {{ review.time }}</span>
-      </div>
-    </header>
 
-    <!-- 카드 영역 -->
-    <div class="overflow-hidden rounded-2xl border bg-white">
-      <div class="flex gap-4 px-5 py-4">
-        <!-- 책 썸네일 -->
-        <div class="h-20 w-16 flex-shrink-0 rounded-md bg-gray-100" />
+      <!-- Body -->
+      <div class="min-w-0 flex-1 space-y-3">
+        <!-- 메타 블록 -->
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0 space-y-1">
+            <div class="flex items-center gap-1 text-xs text-gray-800">
+              <span class="font-semibold truncate">{{
+                review.authorNickname
+              }}</span>
+              <span class="text-gray-400 truncate">{{
+                review.userId ? `@${review.userId}` : ""
+              }}</span>
+            </div>
+            <p class="truncate text-xs text-gray-500">
+              <span class="font-medium text-gray-800">{{
+                review.contentTitle
+              }}</span>
+              <span v-if="review.categoryLabel" class="ml-1 text-gray-400"
+                >· {{ review.categoryLabel }}</span
+              >
+              <span v-if="review.contentAuthor" class="ml-1 text-gray-400"
+                >· {{ review.contentAuthor }}</span
+              >
+              <span v-if="spoilerRangeLabel" class="ml-1 text-amber-700"
+                >({{ spoilerRangeLabel }})</span
+              >
+            </p>
+          </div>
+          <span class="shrink-0 text-xs text-gray-400">
+            {{ review.createdAtLabel || review.time }}
+          </span>
+        </div>
 
-        <!-- 텍스트 -->
-        <div class="flex-1">
-          <p class="text-sm font-semibold text-gray-900">
-            {{ review.book.title }}
-          </p>
-          <p class="mt-1 text-xs text-gray-500">
-            {{ review.book.author }} · {{ review.progress }}p 진행 중
-          </p>
-          <p class="mt-3 line-clamp-3 text-sm leading-relaxed text-gray-700">
-            {{ review.content }}
-          </p>
+        <!-- 제목 -->
+        <p class="truncate text-base font-semibold text-gray-900">
+          {{ review.title || "기록" }}
+        </p>
+
+        <!-- 본문 -->
+        <div
+          v-if="review.body"
+          class="relative rounded-xl bg-gray-50 px-4 py-3 text-sm leading-relaxed text-gray-800"
+          :class="isSpoiler && !revealed ? 'filter blur-[3px] select-none' : ''"
+        >
+          <p class="whitespace-pre-line">{{ review.body }}</p>
+          <div
+            v-if="isSpoiler && !revealed"
+            class="absolute inset-0 flex items-center justify-center bg-white/40 text-xs text-amber-800"
+          >
+            스포일러 보호 중 · 보기 버튼을 눌러 확인
+          </div>
+        </div>
+
+        <button
+          v-if="isSpoiler"
+          type="button"
+          class="text-xs text-amber-700 underline"
+          @click="toggleReveal"
+        >
+          {{ revealed ? "스포일러 숨기기" : "스포일러 보기" }}
+        </button>
+
+        <div
+          v-if="review.tags?.length"
+          class="flex flex-wrap gap-1.5 text-xs text-gray-600"
+        >
+          <span
+            v-for="t in review.tags"
+            :key="t"
+            class="rounded-full bg-gray-100 px-2 py-0.5"
+          >
+            #{{ t }}
+          </span>
         </div>
       </div>
-
-      <!-- 태그 -->
-      <div class="flex flex-wrap gap-2 px-5 pb-3 text-xs">
-        <span
-          v-for="tag in review.tags"
-          :key="tag"
-          class="rounded-full bg-gray-100 px-2 py-1 text-gray-600"
-        >
-          #{{ tag }}
-        </span>
-      </div>
-
-      <!-- 하단 액션 -->
-      <footer class="flex items-center gap-6 border-t px-5 py-3 text-xs text-gray-500">
-        <button class="flex items-center gap-1 hover:text-gray-700">
-          <span>♡</span>
-          <span>{{ review.likes }}</span>
-        </button>
-        <button class="flex items-center gap-1 hover:text-gray-700">
-          <span>💬</span>
-          <span>{{ review.comments }}</span>
-        </button>
-        <button class="flex items-center gap-1 hover:text-gray-700">
-          <span>🔁</span>
-          <span>{{ review.shares }}</span>
-        </button>
-      </footer>
     </div>
   </article>
 </template>
 
 <script setup>
-defineProps({
+import { computed, ref } from "vue";
+
+const props = defineProps({
   review: {
     type: Object,
     required: true,
   },
-})
+});
+
+const revealed = ref(false);
+const toggleReveal = () => {
+  revealed.value = !revealed.value;
+};
+
+const initial = computed(() => {
+  const src = props.review.authorNickname || props.review.userId || "";
+  return src ? src.charAt(0) : "?";
+});
+
+const isSpoiler = computed(
+  () =>
+    props.review.spoiler ??
+    props.review.isSpoiler ??
+    props.review.spoilerProtected ??
+    false
+);
+
+const unitLabel = computed(() => {
+  const catId = Number(props.review.contentCategoryId);
+  if (!Number.isNaN(catId)) {
+    return catId === 1 ? "권" : "화"; // 1: 도서, 그 외: 화 단위
+  }
+  const cat = (props.review.categoryLabel || "").toLowerCase();
+  if (cat.includes("도서") || cat.includes("book")) return "권";
+  return "화";
+});
+
+const spoilerRangeLabel = computed(() => {
+  if (props.review.spoilerUntil != null) {
+    return `스포 ${props.review.spoilerUntil}${unitLabel.value}까지`;
+  }
+  return "";
+});
 </script>

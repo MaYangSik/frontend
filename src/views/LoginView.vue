@@ -61,7 +61,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { login, getRanking } from '@/api/user' 
+import { login } from '@/api/user'
 
 const user_id = ref('')
 const password = ref('')
@@ -70,9 +70,7 @@ const store = useUserStore()
 
 const handleLogin = async () => {
   try {
-
-    await getRanking()
-
+  
     const res = await login({
       user_id: user_id.value,
       password: password.value,

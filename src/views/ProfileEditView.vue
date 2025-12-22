@@ -11,9 +11,9 @@
           <div
             class="relative h-28 w-28 rounded-full overflow-hidden border border-[#D9D7D2] bg-[#F4F3F0] shadow-inner"
           >
-            <img
-              v-if="preview || profile_image_url"
-              :src="preview || profile_image_url"
+           <img
+              v-if="preview || form.profile_image_url"
+              :src="preview || `${S3_BASE_URL}/${form.profile_image_url}`"
               alt="profile"
               class="h-full w-full object-cover"
             />
@@ -72,23 +72,40 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { updateUserProfile, getPresign } from '@/api/user'
+import { updateUserProfile, getPresign , getUserInfo} from '@/api/user'
 
 const router = useRouter()
 const store = useUserStore()
 
 const form = ref({
-  nickname: store.nickname || '',
-  password: '',
-  bio: store.bio || '',
-  profile_image_url: store.user?.profile_image_url || '',
+  nickname:  '',
+  bio: '',
+  profile_image_url:  '',
 })
 
+const S3_BASE_URL =
+  'https://mayangsik-uploaded-files.s3.ap-northeast-2.amazonaws.com'
 const preview = ref(null)
 const selectedFile = ref(null)
+
+onMounted(async () => {
+  try {
+    const { data } = await getUserInfo(store.userId)
+
+    console.log(data)
+
+    form.value.nickname = data.nickname
+    form.value.bio = data.bio
+    form.value.profile_image_url = data.profile_image_url ?? ''
+  } catch (e) {
+    console.log(e)
+    alert('사용자 정보를 불러오지 못했습니다.')
+    router.replace('/login')
+  }
+})
 
 const onFileChange = (e) => {
   const file = e.target.files[0]
@@ -115,7 +132,7 @@ const handleSubmit = async () => {
       })
 
       const { uploadUrl, objectKey } = presignRes.data
-      console.log(presignRes.data)
+      
       
       await fetch(uploadUrl, {
         method: 'PUT',

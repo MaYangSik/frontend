@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- ✅ 비밀번호 및 보안 -->
+    <!-- 비밀번호 및 보안 -->
     <div v-if="selectedMenu === 'security'">
       <h2 class="text-lg font-semibold text-gray-800 mb-4">비밀번호 및 보안</h2>
       <p class="text-sm text-gray-600 mb-4">
@@ -56,34 +56,71 @@
       </div>
     </div>
 
-    <!-- ✅ 개인정보 수정 -->
-    <div v-else-if="selectedMenu === 'personal'">
-      <h2 class="text-lg font-semibold text-gray-800 mb-4">개인정보 수정</h2>
-      <p class="text-sm text-gray-600 mb-3">이메일, 연락처 등 기본 정보를 수정하세요.</p>
-      <form class="space-y-3">
-        <div>
-          <label class="text-sm text-gray-700">이메일</label>
-          <input
-            type="email"
-            class="w-full mt-1 border border-[#DDD9CF] rounded-md px-3 py-2 text-sm bg-[#F8F7F4] focus:ring-1 focus:ring-[#B3B1AB]"
-            placeholder="you@example.com"
-          />
-        </div>
-      
-      </form>
+    <!-- 개인정보 수정 -->
+   <div v-else-if="selectedMenu === 'personal'">
+  <h2 class="text-lg font-semibold text-gray-800 mb-4">개인정보 수정</h2>
+  <p class="text-sm text-gray-600 mb-5">
+    이메일 등 기본 정보를 수정할 수 있습니다.
+  </p>
+
+  <div class="space-y-4">
+    <!-- 이메일 -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        이메일
+      </label>
+      <input
+        type="email"
+        v-model="personalForm.email"
+        :disabled="!isEditingPersonal"
+        class="w-full rounded-lg border border-[#DAD8D2] bg-[#F8F7F4] px-3 py-2 text-sm
+               disabled:bg-[#EFEDE8] disabled:text-gray-500
+               focus:outline-none focus:ring-1 focus:ring-[#B3B1AB]"
+        placeholder="you@example.com"
+      />
     </div>
 
-    <!-- ✅ 내 정보 및 권한 -->
+    <!-- 버튼 영역 -->
+    <div class="flex justify-end gap-3 pt-2">
+      <button
+        v-if="isEditingPersonal"
+        @click="cancelPersonalEdit"
+        class="rounded-full border border-[#DDD9CF] bg-white px-4 py-2 text-sm text-gray-700 hover:bg-[#F5F4F0] transition"
+      >
+        취소
+      </button>
+
+      <button
+        v-if="isEditingPersonal"
+        @click="submitPersonalEdit"
+        class="rounded-full border border-[#D3CBC4] bg-[#E8E2DC] px-4 py-2 text-sm font-semibold text-[#533333] hover:bg-[#E1D8D0] transition"
+      >
+        저장
+      </button>
+
+      <button
+        v-else
+        @click="isEditingPersonal = true"
+        class="rounded-full border border-[#D3CBC4] bg-[#F1EFEA] px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-[#E9E5DE] transition"
+      >
+        수정
+      </button>
+    </div>
+  </div>
+</div>
+
+
+    <!-- 내 정보 및 권한 -->
     <div v-else-if="selectedMenu === 'permissions'">
       <h2 class="text-lg font-semibold text-gray-800 mb-4">내 정보 및 권한</h2>
       <p class="text-sm text-gray-600">계정 권한, 활동 내역 및 접근 권한 관리.</p>
     </div>
 
-    <!-- ✅ 결제 관리 -->
-    <div v-else-if="selectedMenu === 'billing'">
+    <!-- 결제 관리 -->
+    <!-- <div v-else-if="selectedMenu === 'billing'">
       <h2 class="text-lg font-semibold text-gray-800 mb-4">결제 및 구독 관리</h2>
       <p class="text-sm text-gray-600">결제 내역 확인 및 구독 상태를 관리하세요.</p>
-    </div>
+    </div> -->
 
       <div v-if="selectedMenu === 'withdraw'" class="space-y-4">
       <h2 class="text-lg font-semibold text-[#1f2937]">회원 탈퇴</h2>
@@ -101,7 +138,7 @@
     </div>
 
 
-    <!-- ✅ 차단한 계정 관리 -->
+    <!-- 차단한 계정 관리 -->
 <div v-else-if="selectedMenu === 'block'">
   <h2 class="text-lg font-semibold text-gray-800 mb-4">차단한 계정 관리</h2>
   <p class="text-sm text-gray-600 mb-5">
@@ -152,19 +189,21 @@
 </div>
 
 
-
   </div>
 </template>
 
 <script setup>
-import { ref , onMounted } from 'vue'
+import { ref , onMounted} from 'vue'
+import {useRouter } from "vue-router";
 import {passwordChange, getBlockUsers, withdraw, blockUser, unblockUser} from '@/api/user'
+const router = useRouter();
 
 defineProps({
   selectedMenu: String,
 })
 
 const showPasswordForm = ref(false)
+
 
 const form = ref({
   currentPassword: '',
@@ -217,7 +256,8 @@ const fetchBlockedUsers = async () => {
 const confirmWithdraw = async () => {
   try {
     const res = await withdraw()
-    alert('탈퇴가 완료되었습니다ㅏ.')
+    alert('탈퇴가 완료되었습니다.')
+    router.replace('/login')
   } catch (err) {
     console.error('탈퇴하기 실패:', err)
   }

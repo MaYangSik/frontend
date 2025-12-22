@@ -6,12 +6,16 @@
       <RouterView />
     </main>
 
-    <MobileNavigation class="fixed bottom-0 left-0 right-0 block border-t bg-white md:hidden" />
+    <MobileNavigation
+      class="fixed bottom-0 left-0 right-0 block border-t bg-white md:hidden"
+    />
   </div>
 </template>
 
 <script setup>
-import { RouterView } from 'vue-router'
-import MainNavigation from '@/components/MainNavigation.vue'
-import MobileNavigation from '@/components/MobileNavigation.vue'
+import { RouterView } from "vue-router";
+import MainNavigation from "@/components/MainNavigation.vue";
+import MobileNavigation from "@/components/MobileNavigation.vue";
+import { onMounted } from 'vue'
+
 </script>

@@ -1,72 +1,86 @@
 import axios from 'axios'
 import { useUserStore } from '@/stores/user'
-
+import router from '@/router'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const api = axios.create({
-  baseURL: BASE_URL, // 백엔드 주소
+  baseURL: BASE_URL,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 })
 
-// ✅ 요청 인터셉터: Access Token 자동 첨부
-api.interceptors.request.use(
-  (config) => {
-    const store = useUserStore()
+const refreshApi = axios.create({
+  baseURL: BASE_URL,
+  withCredentials: true,
+})
 
-    if (store.accessToken) {
-      config.headers.Authorization = `Bearer ${store.accessToken}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
+api.interceptors.request.use(config => {
+  const store = useUserStore()
+  if (store.accessToken) {
+    config.headers.Authorization = `Bearer ${store.accessToken}`
+  }
+  return config
+})
 
-// 응답 인터셉터: Access Token 만료 시 RefreshToken으로 재발급
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+  res => res,
+  async error => {
     const store = useUserStore()
     const originalRequest = error.config
-
     const status = error.response?.status
-    const message = error.response?.data?.message
+    const message = error.response?.data?.message // ✅ 백엔드가 내려주는 TOKEN_EXPIRED 같은 값
 
-    // Access Token 만료 감지 (401) & 중복 재시도 방지
-    if (status === 401 && message === 'TOKEN_ERROR' && !originalRequest._retry) {
-      originalRequest._retry = true
+    // ✅ 지금 뭐 때문에 튕기는지 바로 보이게 로그 찍기
+    console.log('[API ERROR]', status, originalRequest?.url, message)
 
-      try {
-        // 새 Access Token 발급 요청
-        const refreshResponse = await api.post(
-          `/auth/refresh`,{},{
-           withCredentials: true,
-          })
-
-        const newAccessToken = refreshResponse.data.accessToken
-        store.accessToken = newAccessToken
-
-        // 로컬스토리지 갱신
-        localStorage.setItem('user', JSON.stringify(store.$state))
-
-        // 새 토큰으로 재요청
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
-        return api(originalRequest)
-      } catch (refreshError) {
-        console.error('토큰 재발급 실패:', refreshError)
-
-        // Refresh Token도 만료된 경우 → 자동 로그아웃
-        store.logout()
-        alert('세션이 만료되었습니다. 다시 로그인해주세요.')
-        window.location.href = '/login'
-      }
+    if (!error.response) {
+      alert('네트워크 오류가 발생했습니다.')
+      return Promise.reject(error)
     }
 
-    // 다른 에러는 그대로 반환
-    return Promise.reject(error)
+    // ✅ refresh 자체 실패는 바로 로그아웃
+    if (originalRequest?.url?.includes('/auth/refresh')) {
+      store.logout()
+      router.replace('/login')
+      return Promise.reject(error)
+    }
+
+    // ✅ 403은 "권한/인가"일 수 있으니 여기서 로그아웃하지 말 것
+    if (status === 403) {
+      // 필요하면 안내만
+      // alert('권한이 없거나 접근이 제한되었습니다.')
+      return Promise.reject(error)
+    }
+
+    // ✅ 토큰 만료/위조 케이스만 처리 (백엔드 필터 메시지 기준)
+    const isTokenError = status === 401 && (message === 'TOKEN_EXPIRED' || message === 'TOKEN_INVALID')
+
+    if (!isTokenError) {
+      return Promise.reject(error)
+    }
+
+    // ✅ 재시도했는데도 401 토큰에러면 로그아웃
+    if (originalRequest._retry) {
+      store.logout()
+      router.replace('/login')
+      return Promise.reject(error)
+    }
+
+    // ✅ 토큰 에러면 refresh 시도
+    originalRequest._retry = true
+    try {
+      const { data } = await refreshApi.post('/auth/refresh')
+      store.accessToken = data.accessToken
+      localStorage.setItem('user', JSON.stringify(store.$state))
+
+      originalRequest.headers.Authorization = `Bearer ${data.accessToken}`
+      return api(originalRequest)
+    } catch (e) {
+      store.logout()
+      router.replace('/login')
+      return Promise.reject(e)
+    }
   }
 )
 

@@ -13,7 +13,6 @@ import UserSettingsView from '@/views/UserSettingsView.vue'
 import { useUserStore } from '@/stores/user' 
 
 
-
 const routes = [
   { path: '/', name: 'home', component: HomeView },
   { path: '/ranking', name: 'ranking', component: RankingView },
@@ -35,18 +34,18 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
-   const userStore = useUserStore() // ✅ Pinia store 사용
-  const accessToken = userStore.accessToken || localStorage.getItem('accessToken')
+// router.beforeEach((to, from, next) => {
+//   const userStore = useUserStore()
 
+//   if (!to.meta.requiresAuth) return next()
 
-  if (to.meta.requiresAuth && !accessToken) {
-    // 로그인 안 한 상태에서 인증 필요한 페이지 접근
-    alert('로그인이 필요합니다.')
-    next('/login')
-  } else {
-    next()
-  }
-})
+//   if (!userStore.accessToken) {
+//     userStore.logout()
+//     return next('/login')
+//   }
+
+//   return next()
+// })
+
 
 export default router
