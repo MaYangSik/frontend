@@ -37,11 +37,12 @@
         v-if="selectedBook"
         class="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-gray-700"
       >
-        <p class="font-semibold text-gray-900">
+        <div class="font-semibold text-gray-900">
           <p>{{ selectedBook.title }}</p>
-          <p class="font-normal text-xs text-gray-500"
-            >{{ selectedBook.author }}</p>
-        </p>
+          <p class="font-normal text-xs text-gray-500">
+            {{ selectedBook.author }}
+          </p>
+        </div>
         <p class="mt-2">{{ selectedBook.description }}</p>
         <div class="mt-2 flex flex-wrap gap-1">
           <span
@@ -70,7 +71,6 @@
       <h2 class="mb-6 text-lg font-bold text-gray-900">리뷰 작성</h2>
 
       <div v-if="selectedBook" class="mb-6 text-sm text-gray-700">
-     
         <strong>{{ selectedBook.title }}</strong>
         <span class="text-gray-500"> - {{ selectedBook.author }}</span>
       </div>
@@ -116,7 +116,8 @@
             class="w-full rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
           />
           <p class="mt-1 text-[11px] text-gray-500">
-            스포일러가 없으면 0, 포함된다면 해당 리뷰가 다루는 마지막 화/권을 입력하세요.
+            스포일러가 없으면 0, 포함된다면 해당 리뷰가 다루는 마지막 화/권을
+            입력하세요.
           </p>
         </div>
 

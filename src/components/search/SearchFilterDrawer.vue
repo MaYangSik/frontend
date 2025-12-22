@@ -29,28 +29,6 @@
       </header>
 
       <div class="space-y-6 px-5 py-5">
-        <!-- Presets -->
-        <section class="space-y-3">
-          <h3
-            class="text-xs font-semibold uppercase tracking-wide text-gray-500"
-          >
-            프리셋
-          </h3>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition"
-            :class="
-              filters.noSpoilerOnly
-                ? 'border-gray-900 bg-gray-900 text-white'
-                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-            "
-            @click="filters.noSpoilerOnly = !filters.noSpoilerOnly"
-          >
-            <span>스포 없는 리뷰만</span>
-            <span class="text-xs opacity-80">추천</span>
-          </button>
-        </section>
-
         <!-- Search targets -->
         <section class="space-y-3">
           <h3
@@ -100,9 +78,6 @@
               닉네임
             </label>
           </div>
-          <p class="text-xs text-gray-500">
-            TODO: 서버 검색(ES) 연동 시, 선택된 대상에 맞게 query를 구성하세요.
-          </p>
         </section>
 
         <!-- Content category -->
@@ -164,7 +139,7 @@
             <div>
               <p class="text-sm font-medium text-gray-900">내 기록만 표시</p>
               <p class="mt-0.5 text-xs text-gray-500">
-                내가 작성한 리뷰/기록만 모아봅니다.
+                내가 작성한 리뷰만 모아봅니다.
               </p>
             </div>
           </label>
@@ -194,7 +169,7 @@
             <div>
               <p class="text-sm font-medium text-gray-900">내가 읽은 만큼만</p>
               <p class="mt-0.5 text-xs text-gray-500">
-                내 진행도보다 앞선 리뷰/기록은 제외합니다.
+                내 진행도보다 앞선 리뷰는 제외합니다.
               </p>
             </div>
           </label>
@@ -202,23 +177,21 @@
             class="flex items-start gap-3 rounded-xl border border-gray-100 px-4 py-3"
           >
             <input
-              v-model="filters.onlySpoilerSafe"
+              v-model="filters.noSpoilerOnly"
               type="checkbox"
               class="mt-1 h-4 w-4"
             />
             <div>
               <p class="text-sm font-medium text-gray-900">
-                스포일러 안전한 것만
+                스포일러 없는 리뷰만
               </p>
               <p class="mt-0.5 text-xs text-gray-500">
-                스포 보호 중인 기록은 내 진행도가 기준치에 도달했을 때만
-                노출합니다.
+                모두가 볼 수 있는 리뷰만 보여줍니다.
               </p>
             </div>
           </label>
           <p class="text-xs text-gray-400 text-right">
-            Tip: 위 옵션들은 “내 진행도(권/화)” 데이터가 있어야 제대로
-            동작합니다.
+            위 옵션들은 '내 진행도' 가 있어야 제대로 동작합니다.
           </p>
         </section>
 
@@ -231,7 +204,6 @@
           </h3>
           <div class="grid grid-cols-2 gap-3">
             <label class="block">
-              <span class="text-xs text-gray-500">시작</span>
               <input
                 v-model="filters.dateFrom"
                 type="date"
@@ -239,7 +211,6 @@
               />
             </label>
             <label class="block">
-              <span class="text-xs text-gray-500">끝</span>
               <input
                 v-model="filters.dateTo"
                 type="date"
@@ -248,40 +219,26 @@
             </label>
           </div>
         </section>
-
-        <!-- Content scope -->
-        <section class="space-y-3">
-          <h3
-            class="text-xs font-semibold uppercase tracking-wide text-gray-500"
-          >
-            검색 컨텐츠 지정
-          </h3>
-          <label class="block">
-            <span class="text-xs text-gray-500">작품</span>
-            <select
-              v-model="filters.contentId"
-              class="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-gray-400"
-            >
-              <option value="">전체</option>
-              <option v-for="c in contentOptions" :key="c.id" :value="c.id">
-                {{ c.title }}
-              </option>
-            </select>
-          </label>
-        </section>
       </div>
 
       <footer class="sticky bottom-0 border-t border-gray-100 bg-white">
         <div class="flex items-center justify-between gap-3 px-5 py-4">
           <button
             type="button"
-            class="rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+            class="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
             @click="$emit('reset')"
           >
             초기화
           </button>
           <div class="flex items-center gap-2">
             <button
+              type="button"
+              class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
+              @click="close"
+            >
+              닫기
+            </button>
+            <!-- <button
               type="button"
               class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
               @click="close"
@@ -294,7 +251,7 @@
               @click="$emit('apply')"
             >
               적용
-            </button>
+            </button> -->
           </div>
         </div>
       </footer>
@@ -306,7 +263,7 @@
 const props = defineProps({
   modelValue: { type: Boolean, required: true },
   filters: { type: Object, required: true },
-  contentOptions: { type: Array, default: () => [] },
+  // contentOptions: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(["update:modelValue", "apply", "reset"]);
