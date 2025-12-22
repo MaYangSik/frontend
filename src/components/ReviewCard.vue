@@ -124,13 +124,24 @@ const initial = computed(() => {
   return src ? src.charAt(0) : "?";
 });
 
-const isSpoiler = computed(
-  () =>
+const isSpoiler = computed(() => {
+  const until = props.review.spoilerUntil;
+  const baseProtected =
     props.review.spoiler ??
     props.review.isSpoiler ??
     props.review.spoilerProtected ??
-    false
-);
+    (until != null && until > 0);
+
+  const myProgress =
+    props.review.myProgress ??
+    props.review.myProgressAtWrite ??
+    null;
+
+  if (baseProtected && until != null && myProgress != null && myProgress >= until) {
+    return false; // 내가 본 진행도 이상이면 블러 해제
+  }
+  return baseProtected;
+});
 
 const unitLabel = computed(() => {
   const catId = Number(props.review.contentCategoryId);
