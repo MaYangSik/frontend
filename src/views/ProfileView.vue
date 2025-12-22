@@ -323,6 +323,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getFollowCount, getUserInfo } from '@/api/user'
 import ReviewCard from '@/components/ReviewCard.vue'
@@ -344,6 +345,8 @@ const tabs = [
   { key: 'likes', label: '좋아요' },
 ]
 
+const route = useRoute()
+const router = useRouter()
 const activeTab = ref('reviews')
 
 /** ✅ 내 서재 내부 화면 전환 상태 */
@@ -392,12 +395,27 @@ watch(
 /** ✅ 탭 클릭 시, 내 서재 상세 상태는 항상 초기화 */
 const handleTabClick = (key) => {
   activeTab.value = key
+  router.replace({ query: { ...route.query, tab: key } })
   if (key === 'library') {
     viewMode.value = 'library'
     selectedBook.value = null
     bookReviews.value = []
   }
 }
+
+const applyTabFromQuery = () => {
+  const qTab = String(route.query.tab || '').toLowerCase()
+  const allowed = tabs.map((t) => t.key)
+  if (allowed.includes(qTab)) {
+    activeTab.value = qTab
+  }
+}
+
+applyTabFromQuery()
+watch(
+  () => route.query.tab,
+  () => applyTabFromQuery()
+)
 
 /** ✅ 책 상세 태그: 없으면 기본값 */
 const selectedBookTags = computed(() => {
