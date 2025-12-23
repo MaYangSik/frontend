@@ -31,9 +31,15 @@
               <span v-if="review.contentAuthor" class="ml-1 text-gray-400"
                 >· {{ review.contentAuthor }}</span
               >
-              <span v-if="spoilerRangeLabel" class="ml-1 text-amber-700"
-                >({{ spoilerRangeLabel }})</span
+              <span
+                v-if="review.spoilerUntil != null && review.spoilerUntil > 0"
+                class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 ml-2 text-[11px] font-medium text-amber-700"
               >
+                스포 {{ review.spoilerUntil }}{{ unitLabel }}
+              </span>
+              <!-- <span v-if="spoilerRangeLabel" class="ml-1 text-amber-700"
+                >({{ spoilerRangeLabel }})</span
+              > -->
             </p>
           </div>
           <div class="ml-auto text-xs text-gray-400">

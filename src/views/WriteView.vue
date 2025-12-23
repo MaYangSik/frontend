@@ -159,13 +159,23 @@
           <label class="mb-1 block text-xs font-semibold text-gray-600"
             >태그</label
           >
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <input
               v-model="tagInput"
               @keyup.enter.prevent="addTag"
               placeholder="#태그 입력 후 엔터"
               class="rounded-full border px-3 py-1 text-xs focus:border-blue-500 focus:outline-none"
             />
+            <button
+              type="button"
+              class="rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 disabled:opacity-60"
+              @click="generateTags"
+              :disabled="isTagGenerating"
+            >
+              {{ isTagGenerating ? "생성 중..." : "태그 자동생성" }}
+            </button>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 mt-2">
             <div class="flex flex-wrap gap-1">
               <button
                 v-for="tag in form.tags"
@@ -197,6 +207,7 @@
 import { ref, reactive } from "vue";
 import { searchContents } from "@/api/content";
 import { createReview } from "@/api/review";
+import api from "@/api/axios";
 import { useRouter } from "vue-router";
 
 const searchQuery = ref("");
@@ -214,6 +225,7 @@ const form = reactive({
   contentId: null,
   spoilerUntil: 0,
 });
+const isTagGenerating = ref(false);
 
 let searchTimer = null;
 const onInput = () => {
@@ -285,6 +297,27 @@ const addTag = () => {
 };
 const removeTag = (tag) => {
   form.tags = form.tags.filter((t) => t !== tag);
+};
+
+const generateTags = async () => {
+  if (!form.content.trim()) {
+    alert("리뷰 내용을 먼저 입력해주세요.");
+    return;
+  }
+  isTagGenerating.value = true;
+  try {
+    const { data } = await api.post("/api/ai/review/tags", {
+      review: form.content,
+    });
+    const newTags = Array.isArray(data?.tags) ? data.tags : [];
+    const merged = Array.from(new Set([...form.tags, ...newTags])).slice(0, 10);
+    form.tags = merged;
+  } catch (e) {
+    console.error("태그 생성 실패", e);
+    alert("태그 자동생성에 실패했습니다.");
+  } finally {
+    isTagGenerating.value = false;
+  }
 };
 
 // 리뷰 등록
