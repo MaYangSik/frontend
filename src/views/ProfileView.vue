@@ -322,54 +322,85 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
-import { useUserStore } from '@/stores/user'
-import { getFollowCount, getUserInfo } from '@/api/user'
-import ReviewCard from '@/components/ReviewCard.vue'
-
+import { ref, watch, computed } from "vue"
+import { useUserStore } from "@/stores/user"
+import { getFollowCount, getUserInfo, getMyLibrary } from "@/api/user"
+import ReviewCard from "@/components/ReviewCard.vue"
+// import MyLibraryReviewCard from "@/components/MyLibraryReviewCard.vue"
 
 const store = useUserStore()
 
 const followCount = ref({ followers: 0, followees: 0 })
 
 const stats = ref({
-  libraryCount: 12,
-  reviewCount: 34,
-  likeCount: 128,
+  libraryCount: 0,
+  reviewCount: 0,
+  likeCount: 0,
 })
 
 const tabs = [
-  { key: 'library', label: '내 서재' },
-  { key: 'reviews', label: '나의 리뷰' },
-  { key: 'likes', label: '좋아요' },
+  { key: "library", label: "내 서재" },
+  { key: "reviews", label: "나의 리뷰" },
+  { key: "likes", label: "좋아요" },
 ]
 
-const activeTab = ref('reviews')
+const activeTab = ref("library")
 
-/** ✅ 내 서재 내부 화면 전환 상태 */
-const viewMode = ref('library') // 'library' | 'bookReviews'
+const viewMode = ref("library")
 const selectedBook = ref(null)
 const bookReviews = ref([])
 
-const likedReviews = ref([])
+const myLibraryRaw = ref([])
+const library = ref([])
+const reviews = ref([])
 
 const isLoading = ref(false)
-const isLoadingMore = ref(false)
-const isLikeLoading = ref(false)
-const isLikeLoadingMore = ref(false)
-
-const reviewSentinel = ref(null)
-const likeSentinel = ref(null)
-
-const S3_BASE_URL =
-  'https://mayangsik-uploaded-files.s3.ap-northeast-2.amazonaws.com'
 
 const user = ref({
-  user_id: '',
-  nickname: '',
-  bio: '',
-  profile_image_url: '',
+  user_id: "",
+  nickname: "",
+  bio: "",
+  profile_image_url: "",
 })
+
+const formatDateLabel = (iso) => {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+}
+
+const getCoverImage = (item) => {
+  return `https://image.yes24.com/goods/${item.contentId}/L`
+}
+
+/** ✅ ReviewCard가 기대하는 shape로 통일 */
+const toReviewCardShape = (item) => ({
+  id: String(item.reviewId),
+
+  title: item.title,
+  body: item.content,
+  createdAtLabel: formatDateLabel(item.createdAt),
+
+  authorNickname: user.value.nickname,
+  userId: user.value.user_id,
+  profileImageUrl: user.value.profile_image_url,
+
+  contentTitle: item.contentName,
+  contentAuthor: item.contentAuthor,
+
+  spoiler: item.spoilerUntil != null && Number(item.spoilerUntil) > 0,
+  spoilerUntil: item.spoilerUntil,
+
+  tags: item.tags?.map((t) => t.tagName) ?? [],
+  contentTags: item.contentTags?.map(t => t.tagName) ?? [],
+})
+
+console.log(toReviewCardShape)
 
 watch(
   () => store.userId,
@@ -377,121 +408,81 @@ watch(
     if (!newUserId) return
 
     try {
-      const followRes = await getFollowCount(newUserId)
+      isLoading.value = true
+
+      /** ✅ 1) 유저/팔로우 먼저 */
+      const [userRes, followRes] = await Promise.all([
+        getUserInfo(newUserId),
+        getFollowCount(newUserId),
+      ])
+      user.value = userRes.data
       followCount.value = followRes.data
 
-      const userRes = await getUserInfo(newUserId)
-      user.value = userRes.data
+      /** ✅ 2) 내 서재 */
+      const res = await getMyLibrary()
+      const raw = res.data ?? res
+      myLibraryRaw.value = raw
+
+      stats.value.reviewCount = raw.length
+
+      /** ✅ 3) contentId 기준 책 묶기 */
+      const bookMap = {}
+
+      raw.forEach((item) => {
+        const cid = item.contentId
+
+        if (!bookMap[cid]) {
+          bookMap[cid] = {
+            id: cid,
+            title: item.contentName,
+            author: item.contentAuthor,
+            coverImage: getCoverImage(item),
+            reviews: [],
+          }
+        }
+
+        bookMap[cid].reviews.push(toReviewCardShape(item))
+      }) // ✅ 여기서 forEach 끝!!!
+
+      /** ✅ 4) library / reviews 세팅 (forEach 밖) */
+      library.value = Object.values(bookMap)
+      stats.value.libraryCount = library.value.length
+
+      reviews.value = raw.map(toReviewCardShape)
+
     } catch (e) {
-      console.error(e)
+      console.error("마이페이지 로딩 실패:", e)
+    } finally {
+      isLoading.value = false
     }
   },
   { immediate: true }
 )
 
-/** ✅ 탭 클릭 시, 내 서재 상세 상태는 항상 초기화 */
 const handleTabClick = (key) => {
   activeTab.value = key
-  if (key === 'library') {
-    viewMode.value = 'library'
+  if (key === "library") {
+    viewMode.value = "library"
     selectedBook.value = null
     bookReviews.value = []
   }
 }
 
-/** ✅ 책 상세 태그: 없으면 기본값 */
-const selectedBookTags = computed(() => {
-  const tags = selectedBook.value?.tags
-  if (Array.isArray(tags) && tags.length) return tags
-  // 기본 태그(디자인용) — 나중에 API 붙이면 여기 제거해도 됨
-  return ['기록', '독서', '내서재']
-})
-
-/** 더미 리뷰 */
-const reviews = [
-  {
-    id: 'r1',
-    authorNickname: '책벌레민경',
-    userId: 'mayangsik',
-    contentTitle: '이방인',
-    contentAuthor: '알베르 카뮈',
-    categoryLabel: '도서',
-    contentCategoryId: 1,
-    title: '1권: 무감정이라는 오해',
-    body:
-      '뫼르소가 느끼는 감정의 결핍은 냉정함이 아니라,\n사회가 기대하는 감정 표현을 따르지 않았을 뿐이라는 생각이 들었다.',
-    createdAtLabel: '2시간 전',
-    spoiler: false,
-    tags: ['기록', '감정', '독서'],
-  },
-  {
-    id: 'r2',
-    authorNickname: '하루한권',
-    userId: 'onebookaday',
-    contentTitle: '소년이 온다',
-    contentAuthor: '한강',
-    categoryLabel: '도서',
-    contentCategoryId: 1,
-    title: '5권: 침묵이 이어질 때',
-    body:
-      '이 장면은 감정을 드러내지 않지만,\n그 침묵 자체가 가장 큰 외침처럼 느껴졌다.',
-    createdAtLabel: '어제',
-    spoiler: false,
-    tags: ['스포주의', '기록'],
-  },
-  {
-    id: 'r3',
-    authorNickname: '웹툰덕후',
-    userId: 'toonlover',
-    contentTitle: '나 혼자만 레벨업',
-    categoryLabel: '웹툰',
-    contentCategoryId: 2,
-    title: '97화: 전투의 흐름이 바뀌는 순간',
-    body:
-      '이 화부터 주인공의 전투 방식이 완전히 달라진다.\n이전까지 쌓아온 빌드업이 한 번에 터지는 느낌.',
-    createdAtLabel: '3일 전',
-    isSpoiler: false,
-    spoilerUntil: 97,
-    tags: ['웹툰', '전투'],
-  },
-]
-
-/** 더미 서재 */
-const library = ref([
-  {
-    id: 1,
-    title: '이방인',
-    author: '알베르 카뮈',
-    coverImage: 'https://image.yes24.com/goods/12345/L',
-    tags: ['소설', '실존주의', '기록'], // ✅ 태그 추가(없어도 안전하게 처리됨)
-  },
-  {
-    id: 2,
-    title: '소년이 온다',
-    author: '한강',
-    coverImage: 'https://image.yes24.com/goods/67890/L',
-    tags: ['소설', '한국문학', '기록'],
-  },
-  {
-    id: 3,
-    title: '사피엔스',
-    author: '유발 하라리',
-    coverImage: 'https://image.yes24.com/goods/24680/L',
-    tags: ['인문', '사유', '기록'],
-  },
-])
-
-/** ✅ 내 리뷰 보기: 같은 화면에서 책 리뷰 상세로 내려가기 */
 const goToMyReviews = (book) => {
   selectedBook.value = book
-  viewMode.value = 'bookReviews'
-  bookReviews.value = reviews.filter((r) => r.contentTitle === book.title)
+  viewMode.value = "bookReviews"
+  bookReviews.value = book.reviews
 }
 
-/** ✅ 뒤로가기: 서재 그리드 복귀 */
 const backToLibrary = () => {
-  viewMode.value = 'library'
+  viewMode.value = "library"
   selectedBook.value = null
   bookReviews.value = []
 }
+
+const selectedBookTags = computed(() => {
+  if (!selectedBook.value) return ["기록", "독서", "내서재"]
+  const names = selectedBook.value.reviews.flatMap((r) => r.contentTags || [])
+  return [...new Set(names)]
+})
 </script>

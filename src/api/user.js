@@ -43,11 +43,9 @@ export const getFollowees = (userId) => api.get(`/follows/${userId}/followees`);
 export const blockUser = (payload) => {
   api.post(`/blocks`, payload);
 };
-
 export const unblockUser = (blockedId) => {
   api.delete(`/blocks/${blockedId}`);
 };
-
 export const getBlockUsers = () => api.get(`/blocks`)
 
 
@@ -58,3 +56,7 @@ export const getPresign = (data) => api.post('/images/presign', data)
 
 export const getRanking = () => api.get('/ranking/reviews')
 
+
+//내 서재
+
+export const getMyLibrary = () => api.get('/me/library')

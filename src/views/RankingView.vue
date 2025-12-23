@@ -1,95 +1,266 @@
 <template>
   <div class="mx-auto max-w-5xl px-4 pt-8 md:px-6">
+    <!-- 헤더 -->
     <header class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">랭킹</h1>
+      <h1 class="text-2xl font-bold text-[#2E2A24]">랭킹</h1>
+      <p class="mt-1 text-sm text-[#7A766E]">
+        지금 사람들이 많이 읽고 공감한 기록
+      </p>
     </header>
 
-    <!-- 필터 탭 -->
-    <div class="mb-6 flex gap-3 text-sm">
+    <!-- 랭킹 종류 탭 -->
+    <div class="mb-4 flex gap-2 text-sm">
       <button
-        v-for="tab in tabs"
+        v-for="tab in rankTabs"
         :key="tab.key"
-        class="rounded-full px-4 py-2 font-medium transition-colors"
-        :class="activeTab === tab.key ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-        @click="activeTab = tab.key"
+        @click="activeRankTab = tab.key"
+        class="rounded-full px-4 py-1.5 transition"
+        :class="
+          activeRankTab === tab.key
+            ? 'bg-[#EAE9E3] text-[#2E2A24] font-semibold'
+            : 'text-[#7A766E] hover:bg-[#F1F0EC]'
+        "
       >
         {{ tab.label }}
       </button>
     </div>
 
-    <!-- 리스트 -->
-    <section class="space-y-4">
-      <article
-        v-for="item in rankings"
-        :key="item.rank"
-        class="flex items-stretch gap-4 rounded-2xl border bg-white px-5 py-4"
+    <!-- 기간 필터 -->
+    <div class="mb-6 flex gap-2 text-xs">
+      <button
+        v-for="p in periodTabs"
+        :key="p.key"
+        @click="activePeriod = p.key"
+        class="rounded-full px-3 py-1 border transition"
+        :class="
+          activePeriod === p.key
+            ? 'border-[#B3B1AB] bg-white text-[#2E2A24]'
+            : 'border-[#DDD9CF] bg-[#F8F7F3] text-[#7A766E]'
+        "
       >
-        <div class="flex h-16 w-16 items-center justify-center rounded-full bg-gray-900 text-xl font-bold text-white">
-          {{ item.rank }}
-        </div>
-        <div class="flex h-24 w-20 flex-shrink-0 items-center justify-center rounded-md bg-gray-100" />
-        <div class="flex flex-1 flex-col justify-center">
-          <h2 class="text-base font-semibold text-gray-900">{{ item.book }}</h2>
-          <p class="mt-1 text-xs text-gray-500">{{ item.author }}</p>
-          <p class="mt-2 line-clamp-2 text-sm text-gray-700">
-            {{ item.summary }}
-          </p>
-          <div class="mt-2 flex items-center gap-3 text-xs text-gray-500">
-            <span>작성자: {{ item.reviewer }}</span>
-            <span class="flex items-center gap-1">
-              ♡ <span>{{ item.likes }}</span>
-            </span>
-            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
-              {{ item.genre }}
-            </span>
-          </div>
-        </div>
-      </article>
+        {{ p.label }}
+      </button>
+    </div>
+
+    <!-- 🔹 랭킹 없음 상태 -->
+    <div
+      v-if="!isLoading && isEmpty"
+      class="flex flex-col items-center justify-center
+             rounded-2xl border border-[#EAE9E3]
+             bg-[#FAF9F7] py-16 text-center"
+    >
+      <p class="text-lg font-semibold text-[#2E2A24]">
+        아직 랭킹 데이터가 없습니다
+      </p>
+      <p class="mt-2 text-sm text-[#7A766E]">
+        이번 주 첫 리뷰를 남겨보세요!
+      </p>
+      <p class="mt-1 text-xs text-[#9B978D]">
+        랭킹은 리뷰가 쌓이면 자동으로 생성됩니다
+      </p>
+    </div>
+
+    <!-- ================= 리뷰 많은 순 ================= -->
+    <section
+      v-if="activeRankTab === 'review' && !isEmpty && !isLoading"
+    >
+      <div>
+        <template v-for="(item, idx) in reviewRankings" :key="item.rank">
+          <article
+            class="flex items-stretch gap-5 px-2 py-6
+                   hover:bg-[#FAF9F7] transition"
+          >
+            <!-- 순위 -->
+            <div class="flex w-10 flex-col items-center pt-1">
+              <div class="text-[11px] text-[#8A867D]">RANK</div>
+              <div class="mt-1 text-2xl font-extrabold text-[#2E2A24]">
+                {{ item.rank }}
+              </div>
+              <div
+                class="mt-2 h-10 w-[2px]"
+                :class="item.rank <= 3 ? 'bg-[#2E2A24]' : 'bg-[#DDD9CF]'"
+              />
+            </div>
+
+            <!-- 이미지 -->
+            <div
+              class="relative h-36 w-24 flex-shrink-0 overflow-hidden
+                     rounded-md bg-gradient-to-br from-[#E9E7E2] to-[#DAD8D2]"
+            >
+              <img
+                v-if="item.image"
+                :src="item.image"
+                class="h-full w-full object-cover"
+              />
+              <div v-else class="flex h-full w-full flex-col justify-between p-3">
+                <div class="text-[10px] text-[#6B675E] opacity-70">MYANGSIK</div>
+                <div class="space-y-1">
+                  <div class="h-2 w-10 bg-white/60" />
+                  <div class="h-2 w-14 bg-white/50" />
+                </div>
+                <div class="text-[10px] text-[#6B675E] opacity-60">CUSTOM</div>
+              </div>
+            </div>
+
+            <!-- 텍스트 -->
+            <div class="flex min-w-0 flex-1 flex-col justify-between">
+              <div>
+                <p class="truncate text-lg font-semibold text-[#2E2A24]">
+                  {{ item.book }}
+                </p>
+                <p class="mt-1 text-sm text-[#7A766E]">
+                  {{ item.author }}
+                </p>
+
+                <div class="mt-3 flex flex-wrap gap-1.5">
+                  <span
+                    v-for="tag in item.tags"
+                    :key="tag"
+                    class="text-[11px] text-[#5E594F]"
+                  >
+                    #{{ tag }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-4 text-xs text-[#8A867D]">
+                리뷰 {{ item.reviewCount }}개
+              </div>
+            </div>
+          </article>
+
+          <div
+            v-if="idx !== reviewRankings.length - 1"
+            class="border-t border-[#EAE9E3]"
+          />
+        </template>
+      </div>
+    </section>
+
+    <!-- ================= 좋아요 많은 순 ================= -->
+    <section
+      v-else-if="activeRankTab === 'like' && !isEmpty && !isLoading"
+    >
+      <div>
+        <template v-for="(item, idx) in likeRankings" :key="item.review.id">
+          <article
+            class="flex gap-5 px-2 py-6 hover:bg-[#FAF9F7] transition"
+          >
+            <!-- 순위 -->
+            <div class="flex w-10 flex-col items-center pt-1">
+              <div class="text-[11px] text-[#8A867D]">RANK</div>
+              <div class="mt-1 text-2xl font-extrabold text-[#2E2A24]">
+                {{ idx + 1 }}
+              </div>
+              <div
+                class="mt-2 h-10 w-[2px]"
+                :class="idx < 3 ? 'bg-[#2E2A24]' : 'bg-[#DDD9CF]'"
+              />
+            </div>
+
+            <!-- 프로필 -->
+            <div
+              class="flex h-12 w-12 items-center justify-center
+                     rounded-full bg-gradient-to-br from-[#D9D5CA] to-[#F0EEE9]
+                     text-sm font-bold text-white"
+            >
+              {{ item.review.authorNickname.charAt(0) }}
+            </div>
+
+            <!-- 텍스트 -->
+            <div class="flex min-w-0 flex-1 flex-col justify-between">
+              <div>
+                <p class="truncate text-lg font-semibold text-[#2E2A24]">
+                  {{ item.review.title }}
+                </p>
+                <p class="mt-1 text-sm text-[#7A766E]">
+                  {{ item.review.contentTitle }}
+                  <span v-if="item.review.contentAuthor">
+                    · {{ item.review.contentAuthor }}
+                  </span>
+                </p>
+                <p class="mt-1 text-xs text-[#9B978D]">
+                  by {{ item.review.authorNickname }}
+                </p>
+              </div>
+
+              <div class="mt-4 flex gap-3 text-xs text-[#8A867D]">
+                <span>♥ {{ item.review.likeCount }}</span>
+                <span>조회 {{ item.review.viewCount }}</span>
+              </div>
+            </div>
+          </article>
+
+          <div
+            v-if="idx !== likeRankings.length - 1"
+            class="border-t border-[#EAE9E3]"
+          />
+        </template>
+      </div>
     </section>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onMounted } from "vue";
+import { getRanking } from "@/api/ranking";
 
-const tabs = [
-  { key: 'all', label: '전체' },
-  { key: 'genre', label: '장르별' },
-  { key: 'likes', label: '좋아요 순' },
-  { key: 'reviews', label: '리뷰수 순' },
-  { key: 'completed', label: '완독자 리뷰만' },
-]
+const rankTabs = [
+  { key: "reviews", label: "리뷰 많은 순" },
+  { key: "likes", label: "좋아요 많은 순" },
+];
 
-const activeTab = ref('all')
+const periodTabs = [
+  { key: "today", label: "오늘" },
+  { key: "week", label: "주간" },
+];
 
-const rankings = [
-  {
-    rank: 1,
-    book: '이방인',
-    author: '알베르 카뮈',
-    summary: '소설의 첫 문장 "오늘, 엄마가 죽었다"는 정말 충격적이었습니다...',
-    reviewer: '김독서',
-    likes: 342,
-    genre: '고전문학',
-  },
-  {
-    rank: 2,
-    book: '1984',
-    author: '조지 오웰',
-    summary:
-      '빅 브라더가 지배하는 사회. 생각보다 현대 사회와 닮아있어서 소름 돋았습니다...',
-    reviewer: '이서평',
-    likes: 298,
-    genre: 'SF',
-  },
-  {
-    rank: 3,
-    book: '데미안',
-    author: '헤르만 헤세',
-    summary: '싱클레어의 성장 과정이 너무나 공감됩니다...',
-    reviewer: '박문학',
-    likes: 256,
-    genre: '성장소설',
-  },
-]
+const activeRankTab = ref("reviews");
+const activePeriod = ref("today");
+
+const reviewRankings = ref([]);
+const likeRankings = ref([]);
+
+const isLoading = ref(false);
+const isEmpty = ref(false);
+
+watch([activeRankTab, activePeriod], () => {
+  fetchRanking();
+});
+
+async function fetchRanking() {
+  isLoading.value = true;
+  isEmpty.value = false;
+
+  try {
+    const res = await getRanking({
+      type: activeRankTab.value,
+      period: activePeriod.value,
+    });
+
+    const items = res.items ?? [];
+
+    if (items.length === 0) {
+      isEmpty.value = true;
+      reviewRankings.value = [];
+      likeRankings.value = [];
+      return;
+    }
+
+    if (activeRankTab.value === "reviews") {
+      reviewRankings.value = items;
+    } else {
+      likeRankings.value = items;
+    }
+  } catch (e) {
+    console.error("랭킹 조회 실패", e);
+    isEmpty.value = true;
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  fetchRanking();
+});
 </script>
