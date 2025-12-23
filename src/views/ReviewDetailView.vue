@@ -79,20 +79,23 @@
         </span>
       </section>
 
-      <section class="mt-6 border-t border-gray-100 pt-4">
-        <div class="flex items-center gap-4 text-sm text-gray-600">
+      <section class="mt-6 ml-1 border-t border-gray-100 pt-4">
+        <div class="flex items-center justify-between text-sm text-gray-600">
           <button
             type="button"
-            class="flex items-center gap-2 hover:text-gray-900"
+            class="flex items-center gap-2"
+            :class="review.likedByMe ? 'text-rose-600' : 'text-gray-600'"
+            :disabled="isLiking || !isLoggedIn"
+            @click="handleLike"
           >
-            <span>♡</span>
+            <span>{{ review.likedByMe ? "♥" : "♡" }}</span>
             <span>{{ review.likeCount }}</span>
           </button>
           <button
             type="button"
-            class="flex items-center gap-2 hover:text-gray-900"
+            class="flex items-center gap-2 rounded-xl text-gray-600 hover:text-gray-900 transition"
           >
-            <span class="text-xs">🔗</span>
+            <span class="text-xs text-gray-400">🔗</span>
             <span>공유하기</span>
           </button>
         </div>
@@ -131,7 +134,8 @@
 <script setup>
 import { onMounted, ref, computed } from "vue";
 import { useRoute } from "vue-router";
-import { getReview } from "@/api/review";
+import { getReview, toggleReviewLike } from "@/api/review";
+import { useUserStore } from "@/stores/user";
 
 const route = useRoute();
 const reviewId = computed(() => route.params.reviewId);
@@ -139,6 +143,9 @@ const review = ref({});
 const isLoading = ref(true);
 const error = ref(null);
 const revealed = ref(false);
+const isLiking = ref(false);
+const userStore = useUserStore();
+const isLoggedIn = computed(() => userStore.isLoggedIn);
 
 const unitLabel = computed(() => {
   const catId = Number(review.value.contentCategoryId);
@@ -190,11 +197,26 @@ const normalizeReview = (r) => {
     createdAt: r.createdAt,
     createdAtLabel: r.createdAtLabel,
     likeCount: r.likeCount,
+    likedByMe: Boolean(r.likedByMe),
     viewCount: r.viewCount,
     spoilerUntil: r.spoilerUntil,
     spoiler: r.spoiler ?? r.isSpoiler,
     tags,
   };
+};
+
+const handleLike = async () => {
+  if (!review.value?.id || isLiking.value || !isLoggedIn.value) return;
+  isLiking.value = true;
+  try {
+    const { data } = await toggleReviewLike(review.value.id);
+    review.value.likeCount = data?.likeCount ?? review.value.likeCount;
+    review.value.likedByMe = Boolean(data?.liked);
+  } catch (e) {
+    console.error("리뷰 좋아요 토글 실패", e);
+  } finally {
+    isLiking.value = false;
+  }
 };
 
 const fetchReview = async () => {

@@ -23,7 +23,12 @@
 
       <!-- 리뷰 리스트 -->
       <div class="divide-y">
-        <ReviewCard v-for="item in reviews" :key="item.id" :review="item" />
+        <ReviewCard
+          v-for="item in reviews"
+          :key="item.id"
+          :review="item"
+          :is-logged-in="isLoggedIn"
+        />
         <p v-if="!isLoading && !reviews.length" class="py-8 text-center text-sm text-gray-500">
           표시할 리뷰가 없습니다.
         </p>
@@ -88,6 +93,9 @@ const normalizeList = (payload) => {
       categoryLabel: "", // 필요시 매핑
       spoiler: r.spoilerUntil != null && Number(r.spoilerUntil) > 0,
       spoilerUntil: r.spoilerUntil,
+      likeCount: r.likeCount,
+      viewCount: r.viewCount,
+      likedByMe: r.likedByMe,
       tags: tagNames,
     };
   });

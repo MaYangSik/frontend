@@ -36,9 +36,13 @@
               >
             </p>
           </div>
-          <span class="shrink-0 text-xs text-gray-400">
-            {{ review.createdAtLabel || review.time }}
-          </span>
+          <div class="ml-auto text-xs text-gray-400">
+            <span class="shrink-0">
+              {{ review.createdAtLabel }}
+            </span>
+            <span class="text-gray-300"> · </span>
+            <span>조회 {{ review.viewCount ?? 0 }}</span>
+          </div>
         </div>
 
         <!-- 제목 -->
@@ -62,7 +66,10 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-y-2 text-xs text-gray-500">
-          <div v-if="review.tags?.length" class="flex flex-wrap gap-1.5 text-gray-600">
+          <div
+            v-if="review.tags?.length"
+            class="flex flex-wrap gap-1.5 text-gray-600"
+          >
             <span
               v-for="t in review.tags"
               :key="t"
@@ -72,15 +79,17 @@
             </span>
           </div>
           <div class="flex w-full items-center justify-between gap-3">
-            <div class="flex items-center gap-3 text-gray-600">
-              <span class="inline-flex items-center gap-1">
-                <span class="text-xs uppercase tracking-wide">조회수</span>
-                <span>{{ review.viewCount ?? 0 }}</span>
-              </span>
-              <span class="inline-flex items-center gap-1">
-                <span class="text-xs uppercase tracking-wide">좋아요</span>
-                <span>{{ review.likeCount ?? 0 }}</span>
-              </span>
+            <div class="flex items-center gap-3 text-gray-600 ml-1">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2"
+                :class="likedByMe ? 'text-rose-600' : 'text-gray-600'"
+                :disabled="isLiking || !isLoggedIn"
+                @click.stop="handleLike"
+              >
+                <span class="text-sm">{{ likedByMe ? "♥" : "♡" }}</span>
+                <span>{{ likeCount }}</span>
+              </button>
             </div>
             <button
               v-if="isSpoiler"
@@ -98,19 +107,50 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import { toggleReviewLike } from "@/api/review";
 
 const props = defineProps({
   review: {
     type: Object,
     required: true,
   },
+  isLoggedIn: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const revealed = ref(false);
 const toggleReveal = () => {
   revealed.value = !revealed.value;
+};
+
+const likeCount = ref(props.review?.likeCount ?? 0);
+const likedByMe = ref(Boolean(props.review?.likedByMe));
+const isLiking = ref(false);
+
+watch(
+  () => props.review,
+  (next) => {
+    likeCount.value = next?.likeCount ?? 0;
+    likedByMe.value = Boolean(next?.likedByMe);
+  }
+);
+
+const handleLike = async () => {
+  if (!props.review?.id || isLiking.value || !props.isLoggedIn) return;
+  isLiking.value = true;
+  try {
+    const { data } = await toggleReviewLike(props.review.id);
+    likeCount.value = data?.likeCount ?? likeCount.value;
+    likedByMe.value = Boolean(data?.liked);
+  } catch (error) {
+    console.error("리뷰 좋아요 토글 실패", error);
+  } finally {
+    isLiking.value = false;
+  }
 };
 
 const router = useRouter();
@@ -133,11 +173,14 @@ const isSpoiler = computed(() => {
     (until != null && until > 0);
 
   const myProgress =
-    props.review.myProgress ??
-    props.review.myProgressAtWrite ??
-    null;
+    props.review.myProgress ?? props.review.myProgressAtWrite ?? null;
 
-  if (baseProtected && until != null && myProgress != null && myProgress >= until) {
+  if (
+    baseProtected &&
+    until != null &&
+    myProgress != null &&
+    myProgress >= until
+  ) {
     return false; // 내가 본 진행도 이상이면 블러 해제
   }
   return baseProtected;
