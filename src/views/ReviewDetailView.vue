@@ -14,10 +14,7 @@
       <p class="text-sm text-red-600">리뷰를 불러오지 못했습니다.</p>
     </div>
 
-    <article
-      v-else
-      class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
-    >
+    <article v-else class="p-5">
       <div class="flex items-center gap-2 text-sm text-gray-500">
         <button
           type="button"
@@ -44,7 +41,7 @@
               }}</span>
               <span class="text-gray-400">@{{ review.userId }}</span>
               <span
-                v-if="review.spoilerUntil != null"
+                v-if="review.spoilerUntil != null && review.spoilerUntil > 0"
                 class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700"
               >
                 스포 {{ review.spoilerUntil }}{{ unitLabel }}
@@ -58,12 +55,12 @@
           </div>
         </div>
 
-        <h1 class="text-xl mt-2 font-semibold leading-snug text-gray-900">
+        <h1 class="text-xl mt-1 font-semibold leading-snug text-gray-900">
           {{ review.title }}
         </h1>
       </header>
 
-      <section class="mt-4 space-y-3">
+      <section class="mt-2 space-y-3 border-t border-gray-100 pt-4">
         <div class="relative text-base leading-relaxed text-gray-800">
           <p class="whitespace-pre-line">{{ review.body }}</p>
         </div>
@@ -79,7 +76,7 @@
         </span>
       </section>
 
-      <section class="mt-6 ml-1 border-t border-gray-100 pt-4">
+      <section class="mt-6 ml-1 border-b border-gray-100 pb-4">
         <div class="flex items-center justify-between text-sm text-gray-600">
           <button
             type="button"
@@ -201,7 +198,7 @@ const normalizeReview = (r) => {
     viewCount: r.viewCount,
     spoilerUntil: r.spoilerUntil,
     spoiler: r.spoiler ?? r.isSpoiler,
-    tags,
+    tags: r.tagNames,
   };
 };
 
