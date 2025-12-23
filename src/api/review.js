@@ -19,3 +19,7 @@ export const createReview = (payload) => api.post("/reviews", payload);
 
 // 리뷰 단건 조회
 export const getReview = (reviewId) => api.get(`/reviews/${reviewId}`);
+
+// 리뷰 좋아요 토글
+export const toggleReviewLike = (reviewId) =>
+  api.post(`/reviews/${reviewId}/like`);

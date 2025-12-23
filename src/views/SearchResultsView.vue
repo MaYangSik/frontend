@@ -55,36 +55,7 @@
         <div class="flex items-center justify-between">
           <SearchTabs v-model="activeTab" :tabs="tabs" />
           <div
-            v-if="activeTab === 'contents'"
-            class="flex gap-2 text-xs text-gray-600"
-          >
-            <button
-              type="button"
-              class="rounded-full border px-3 py-1"
-              :class="
-                contentSort === 'latest'
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-gray-200'
-              "
-              @click="setContentSort('latest')"
-            >
-              최신순
-            </button>
-            <button
-              type="button"
-              class="rounded-full border px-3 py-1"
-              :class="
-                contentSort === 'popular'
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-gray-200'
-              "
-              @click="setContentSort('popular')"
-            >
-              좋아요순
-            </button>
-          </div>
-          <div
-            v-else-if="activeTab === 'reviews'"
+            v-if="activeTab === 'reviews'"
             class="flex gap-2 text-xs text-gray-600"
           >
             <button
@@ -356,7 +327,6 @@ const userPage = ref(0);
 const hasMoreContents = ref(true);
 const hasMoreReviews = ref(true);
 const hasMoreUsers = ref(true);
-const contentSort = ref("latest");
 const reviewSort = ref("latest");
 const contentSentinel = ref(null);
 const reviewSentinel = ref(null);
@@ -667,6 +637,9 @@ const normalizedReviews = computed(() => {
       authorNickname: r.nickname || r.userId,
       createdAt: r.createdAt,
       createdAtLabel: makeDateLabel(r.createdAt),
+      likeCount: r.likeCount,
+      likedByMe: r.likedByMe,
+      viewCount: r.viewCount,
       contentId: String(r.contentId),
       contentTitle:
         r.contentName ||
@@ -990,7 +963,6 @@ const baseContentParams = () => {
     contentCategoryId: singleCategoryId ?? undefined,
     seenOnly: Boolean(filters.seenOnly),
     size,
-    sort: contentSort.value,
   };
 };
 
@@ -1114,12 +1086,6 @@ const anyError = computed(
 const goToTab = (tabId) => {
   if (!["all", "contents", "reviews", "users"].includes(tabId)) return;
   router.replace({ query: { ...route.query, tab: tabId } });
-};
-
-const setContentSort = (sort) => {
-  if (sort === contentSort.value) return;
-  contentSort.value = sort;
-  loadContents();
 };
 
 const setReviewSort = (sort) => {

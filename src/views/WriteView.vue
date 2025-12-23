@@ -307,8 +307,8 @@ const submitReview = async () => {
     title: form.title,
     content: form.content,
     spoilerUntil: Number(form.spoilerUntil) || 0,
-    tagIds: [], // TODO: 태그 ID 선택 로직이 생기면 교체
-    imageUrls: [], // TODO: 이미지 업로드 API 연동 후 교체
+    tags: form.tags, // TODO: 태그 ID 선택 로직이 생기면 교체
+    imageUrls: form.imageUrls, // TODO: 이미지 업로드 API 연동 후 교체
   };
 
   try {

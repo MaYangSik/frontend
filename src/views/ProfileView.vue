@@ -328,6 +328,7 @@ import { getFollowCount, getUserInfo, getMyLibrary } from "@/api/user"
 import ReviewCard from "@/components/ReviewCard.vue"
 // import MyLibraryReviewCard from "@/components/MyLibraryReviewCard.vue"
 
+
 const store = useUserStore()
 
 const followCount = ref({ followers: 0, followees: 0 })
@@ -345,7 +346,6 @@ const tabs = [
 ]
 
 const activeTab = ref("library")
-
 const viewMode = ref("library")
 const selectedBook = ref(null)
 const bookReviews = ref([])
@@ -463,6 +463,7 @@ const handleTabClick = (key) => {
   activeTab.value = key
   if (key === "library") {
     viewMode.value = "library"
+
     selectedBook.value = null
     bookReviews.value = []
   }

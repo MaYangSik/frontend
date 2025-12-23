@@ -50,13 +50,23 @@
       <h2 class="mb-3 text-sm font-semibold text-gray-900">내 활동</h2>
       <div class="flex items-center justify-center gap-9 text-sm text-gray-700">
         <div class="flex flex-col items-center">
-          <p class="text-lg font-bold text-gray-900">{{ booksRead }}</p>
-          <span class="text-xs text-gray-500">읽은 책</span>
+          <RouterLink
+            :to="{ name: 'profile', params: { userId: userId || undefined }, query: { tab: 'library' } }"
+            class="flex flex-col items-center hover:text-blue-600"
+          >
+            <p class="text-lg font-bold text-gray-900">{{ booksRead }}</p>
+            <span class="text-xs text-gray-500">읽은 책</span>
+          </RouterLink>
         </div>
         <div class="h-8 w-[1px] bg-gray-200"></div>
         <div class="flex flex-col items-center">
-          <p class="text-lg font-bold text-gray-900">{{ reviewsWritten }}</p>
-          <span class="text-xs text-gray-500">리뷰</span>
+          <RouterLink
+            :to="{ name: 'profile', params: { userId: userId || undefined }, query: { tab: 'reviews' } }"
+            class="flex flex-col items-center hover:text-blue-600"
+          >
+            <p class="text-lg font-bold text-gray-900">{{ reviewsWritten }}</p>
+            <span class="text-xs text-gray-500">리뷰</span>
+          </RouterLink>
         </div>
       </div>
       <RouterLink
@@ -133,17 +143,18 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, watch, ref } from "vue";
 import { followUser } from "@/api/user"; // 백엔드 API 요청 함수라고 가정
 import { searchReviews } from "@/api/review";
+import api from "@/api/axios";
 import { useUserStore } from "@/stores/user";
 
 const store = useUserStore();
 const isLoggedIn = computed(() => store.isLoggedIn);
 const userId = computed(() => store.userId);
 
-const booksRead = 24;
-const reviewsWritten = 42;
+const booksRead = ref(0);
+const reviewsWritten = ref(0);
 const recentReviews = computed(() => store.recentReviews || []);
 
 const recommendedFriends = [
@@ -204,11 +215,26 @@ const fetchRecentReviews = async () => {
   }
 };
 
+const fetchStats = async () => {
+  if (!isLoggedIn.value) return;
+  try {
+    const { data } = await api.get("/users/stats");
+    booksRead.value = Number(data?.readCount ?? 0);
+    reviewsWritten.value = Number(data?.reviewCount ?? 0);
+  } catch (e) {
+    console.error("통계 로드 실패", e);
+  }
+};
+
 onMounted(() => {
   fetchRecentReviews();
+  fetchStats();
 });
 
 watch(isLoggedIn, (v) => {
-  if (v) fetchRecentReviews();
+  if (v) {
+    fetchRecentReviews();
+    fetchStats();
+  }
 });
 </script>
