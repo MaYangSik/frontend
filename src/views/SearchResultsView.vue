@@ -54,7 +54,7 @@
         <!-- Tabs & Sort -->
         <div class="flex items-center justify-between">
           <SearchTabs v-model="activeTab" :tabs="tabs" />
-          <div
+          <!-- <div
             v-if="activeTab === 'reviews'"
             class="flex gap-2 text-xs text-gray-600"
           >
@@ -82,7 +82,7 @@
             >
               좋아요순
             </button>
-          </div>
+          </div> -->
         </div>
 
         <!-- Results -->
