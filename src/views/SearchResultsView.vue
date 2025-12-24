@@ -683,8 +683,9 @@ const contentOptions = computed(() =>
 
 // 검색어에서 앞의 #은 태그 검색용 접두어라 제거하고 비교한다.
 const keyword = computed(() =>
-  query.value.trim().replace(/^#/, "").toLowerCase()
+  query.value.trim().replace(/^#\s*/, "").trim().toLowerCase()
 );
+const isHashTagQuery = computed(() => query.value.trim().startsWith("#"));
 
 const categoryAllowed = (category) => {
   if (!category || category === "unknown") return true;
@@ -716,13 +717,9 @@ const filteredContents = computed(() => {
         return false;
       return true;
     })
-    .filter((c) =>
-      matchesByTargets({
-        title: c.title,
-        body: c.summary,
-        tags: c.tags,
-      })
-    );
+    // 콘텐츠는 ES 검색 결과를 그대로 사용해 total/노출을 일관되게 유지합니다.
+    // (클라이언트 키워드 필터링은 태그 매칭 결과를 누락시킬 수 있음)
+    ;
 });
 
 const previewContents = computed(() => filteredContents.value.slice(0, 3));
@@ -955,6 +952,10 @@ const baseContentParams = () => {
   const selectedCats = Object.entries(filters.categories)
     .filter(([, v]) => v)
     .map(([k]) => k);
+  const selectedTargets = Object.entries(filters.targets)
+    .filter(([, v]) => v)
+    .map(([k]) => k)
+    .filter((k) => k !== "nickname");
   const singleCategoryId =
     selectedCats.length === 1
       ? contentCategoryIdFromKey(selectedCats[0])
@@ -963,6 +964,7 @@ const baseContentParams = () => {
     keyword: q,
     contentCategoryId: singleCategoryId ?? undefined,
     seenOnly: Boolean(filters.seenOnly),
+    targets: selectedTargets,
     size,
   };
 };

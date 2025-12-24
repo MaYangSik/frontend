@@ -66,9 +66,30 @@
         </div>
       </section>
 
-      <section v-if="review.tags?.length" class="mt-4 flex flex-wrap gap-2">
+      <!--리뷰 이미지-->
+      <section
+        v-if="review.imageUrls?.length"
+        class="mt-6 grid grid-cols-2 gap-3"
+      >
+        <div
+          v-for="(img, idx) in review.imageUrls"
+          :key="idx"
+          class="aspect-square overflow-hidden rounded-xl bg-gray-100 border"
+        >
+          <img
+            :src="resolveImageUrl(img)"
+            class="h-full w-full object-cover"
+            alt="리뷰 이미지"
+          />
+        </div>
+      </section>
+      <!-- 태그 목록-->
+      <section
+        v-if="review.reviewTags?.length"
+        class="mt-4 flex flex-wrap gap-2"
+      >
         <span
-          v-for="t in review.tags"
+          v-for="t in review.reviewTags"
           :key="t"
           class="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
         >
@@ -112,9 +133,12 @@
                 >· {{ review.categoryLabel }}</span
               >
             </p>
-            <div v-if="review.tags?.length" class="mt-2 flex flex-wrap gap-1">
+            <div
+              v-if="review.contentTags?.length"
+              class="mt-2 flex flex-wrap gap-1"
+            >
               <span
-                v-for="t in review.tags"
+                v-for="t in review.contentTags"
                 :key="t"
                 class="rounded-full bg-white px-2 py-0.5 text-[11px] text-gray-600"
               >
@@ -174,8 +198,14 @@ const goBack = () => {
   window.history.length > 1 ? history.back() : null;
 };
 
+// 이미지 S3 경로 변환 함수
+const resolveImageUrl = (path) => {
+  if (!path) return "";
+  return `https://mayangsik-uploaded-files.s3.ap-northeast-2.amazonaws.com/${path}`;
+};
+
 const normalizeReview = (r) => {
-  const tags = Array.isArray(r.tags)
+  const reviewTags = Array.isArray(r.tags)
     ? r.tags.map((t) => t?.tagName || t).filter(Boolean)
     : Array.isArray(r.tagNames)
     ? r.tagNames.filter(Boolean)
@@ -190,6 +220,7 @@ const normalizeReview = (r) => {
     contentTitle: r.contentName,
     contentAuthor: r.contentAuthor,
     contentCategoryId: r.contentCategoryId,
+    contentTags: r.contentTags,
     categoryLabel: r.categoryLabel,
     createdAt: r.createdAt,
     createdAtLabel: r.createdAtLabel,
@@ -198,7 +229,8 @@ const normalizeReview = (r) => {
     viewCount: r.viewCount,
     spoilerUntil: r.spoilerUntil,
     spoiler: r.spoiler ?? r.isSpoiler,
-    tags: r.tagNames,
+    reviewTags: reviewTags,
+    imageUrls: Array.isArray(r.imageUrls) ? r.imageUrls : [],
   };
 };
 
