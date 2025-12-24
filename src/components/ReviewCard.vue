@@ -65,6 +65,16 @@
           </div>
         </div>
 
+        <!-- 리뷰 이미지 -->
+        <div v-if="review.imageUrls?.length" class="flex gap-2 overflow-x-auto">
+          <img
+            v-for="(img, idx) in review.imageUrls"
+            :key="idx"
+            :src="resolveImageUrl(img)"
+            class="h-32 w-32 shrink-0 rounded-lg object-cover border"
+            alt="review image"
+          />
+        </div>
         <div class="flex flex-wrap items-center gap-y-2 text-xs text-gray-500">
           <div
             v-if="review.tags?.length"
@@ -121,6 +131,15 @@ const props = defineProps({
     default: true,
   },
 });
+
+/**
+ * 이미지 S3 경로처리
+ */
+const resolveImageUrl = (path) => {
+  if (!path) return "";
+  return `https://mayangsik-uploaded-files.s3.ap-northeast-2.amazonaws.com/${path}`;
+  // return `${import.meta.env.VITE_IMAGE_BASE_URL}/${path}`;
+};
 
 const revealed = ref(false);
 const toggleReveal = () => {

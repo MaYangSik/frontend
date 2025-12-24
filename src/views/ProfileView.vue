@@ -1,13 +1,13 @@
 <template>
   <div class="min-h-screen bg-[#F1F0EC]">
-    <div class="mx-auto flex max-w-6xl gap-8 px-6 py-10">
+    <div class="mx-auto flex max-w-5xl gap-8 px-4 md:px-6 py-10">
       <!-- 왼쪽: 프로필 -->
       <aside
-        class="sticky top-10 ml-4 h-fit w-64 flex-shrink-0 rounded-2xl border border-[#EAE9E3] bg-white p-6 shadow-sm"
+        class="sticky top-10 h-fit w-64 flex-shrink-0 rounded-xl border border-gray-200 bg-white px-6 py-7 shadow-sm"
       >
         <div class="flex flex-col items-center text-center">
           <div
-            class="h-20 w-20 rounded-full overflow-hidden shadow-sm flex items-center justify-center bg-gradient-to-br from-[#D9D5CA] to-[#F0EEE9]"
+            class="h-24 w-24 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center mb-4"
           >
             <img
               v-if="user.profile_image_url"
@@ -19,51 +19,56 @@
             </span>
           </div>
 
-          <h1 class="mt-3 text-lg font-semibold text-[#2E2A24]">
+          <h1 class="mt-2 text-lg font-semibold text-gray-900">
             {{ user.nickname }}
           </h1>
           <p class="text-xs text-gray-500">@{{ user.user_id }}</p>
 
-          <p class="mt-3 text-sm text-[#5E594F] leading-snug">
+          <p class="mt-4 text-sm text-[#5E594F] leading-snug">
             {{ user.bio }}
           </p>
 
           <div class="mt-4 flex gap-3 text-xs text-gray-600">
-            <RouterLink :to="`/users/${store.userId}/followers`">
-              <strong>{{ followCount.followers }}</strong> 팔로워
-            </RouterLink>
             <RouterLink :to="`/users/${store.userId}/followees`">
               <strong>{{ followCount.followees }}</strong> 팔로잉
             </RouterLink>
+            <RouterLink :to="`/users/${store.userId}/followers`">
+              <strong>{{ followCount.followers }}</strong> 팔로워
+            </RouterLink>
           </div>
-
-          <div class="mt-6 flex w-full gap-2">
+          <div class="flex gap-2 w-full mt-6">
             <RouterLink
               :to="`/users/${store.userId}/edit`"
-              class="flex-1 rounded-full border bg-[#F8F7F3] px-4 py-1.5 text-xs"
+              class="flex-1 rounded-full border border-gray-300 py-2 text-xs text-gray-700 hover:bg-gray-50"
             >
               프로필 수정
             </RouterLink>
             <RouterLink
               :to="`/users/${store.userId}/settings`"
-              class="flex-1 rounded-full border bg-[#F8F7F3] px-4 py-1.5 text-xs"
+              class="flex-1 rounded-full border border-gray-300 py-2 text-xs text-gray-700 hover:bg-gray-50"
             >
               설정
             </RouterLink>
           </div>
 
-          <div class="mt-5 w-full rounded-xl bg-[#F8F7F3] px-4 py-3">
-            <div class="flex justify-between text-xs">
+          <div class="mt-6 w-full rounded-xl bg-[#F8F7F3] px-4 py-3">
+            <div class="flex justify-between text-xs py-2">
               <div class="flex-1 text-center">
-                <span class="text-sm font-semibold">{{ stats.libraryCount }}</span>
+                <span class="text-lg font-semibold">{{
+                  stats.libraryCount
+                }}</span>
                 <div>내 서재</div>
               </div>
+
               <div class="flex-1 text-center">
-                <span class="text-sm font-semibold">{{ stats.reviewCount }}</span>
+                <span class="text-lg font-semibold">{{
+                  stats.reviewCount
+                }}</span>
                 <div>리뷰</div>
               </div>
+
               <div class="flex-1 text-center">
-                <span class="text-sm font-semibold">{{ stats.likeCount }}</span>
+                <span class="text-lg font-semibold">{{ stats.likeCount }}</span>
                 <div>좋아요</div>
               </div>
             </div>
@@ -75,16 +80,16 @@
       <main class="flex-1 flex justify-center">
         <div class="w-full max-w-2xl">
           <!-- 탭 -->
-          <div class="mb-4 flex gap-6 border-b text-sm">
+          <div class="flex gap-6 mb-8 border-b border-gray-200">
             <button
               v-for="tab in tabs"
               :key="tab.key"
               @click="handleTabClick(tab.key)"
-              class="pb-2"
+              class="pb-3 px-1 text-sm transition"
               :class="
                 activeTab === tab.key
-                  ? 'border-b-2 border-[#2E2A24] font-semibold'
-                  : 'text-gray-400'
+                  ? 'font-semibold text-gray-900 border-b-2 border-gray-900'
+                  : 'text-gray-500 hover:text-gray-900'
               "
             >
               {{ tab.label }}
@@ -96,31 +101,26 @@
             <ReviewCard v-for="r in reviews" :key="r.id" :review="r" />
 
             <p
-    v-if="!reviews.length"
-    class="py-20 text-center text-sm text-gray-500"
-  >
-    표시할 리뷰가 없습니다.
-  </p>
+              v-if="!reviews.length"
+              class="py-20 text-center text-sm text-gray-500"
+            >
+              표시할 리뷰가 없습니다.
+            </p>
           </div>
 
           <!-- 좋아요 -->
           <!-- 좋아요 -->
-<div v-else-if="activeTab === 'likes'" class="divide-y">
-  <ReviewCard
-    v-for="r in likedReviews"
-    :key="r.id"
-    :review="r"
-  />
+          <div v-else-if="activeTab === 'likes'" class="divide-y">
+            <ReviewCard v-for="r in likedReviews" :key="r.id" :review="r" />
 
-  <!-- ✅ 좋아요 없음 안내 문구 (복구) -->
-  <p
-    v-if="!likedReviews.length"
-    class="py-20 text-center text-sm text-gray-500"
-  >
-    좋아요한 글이 없습니다.
-  </p>
-</div>
-
+            <!-- ✅ 좋아요 없음 안내 문구 (복구) -->
+            <p
+              v-if="!likedReviews.length"
+              class="py-20 text-center text-sm text-gray-500"
+            >
+              좋아요한 글이 없습니다.
+            </p>
+          </div>
 
           <!-- 내 서재 -->
           <div v-else-if="activeTab === 'library'">
@@ -135,40 +135,31 @@
                 @click="goToMyReviews(book)"
               >
                 <!-- 책 -->
-                <div class="relative w-[140px] h-[200px] transition hover:-translate-y-1">
-                  <!-- 책등 -->
+                <div
+                  class="relative w-[145px] h-[205px] transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl group"
+                >
                   <div
-                    class="absolute left-0 top-0 h-full w-[14px] shadow-inner"
-                    :class="book.theme.spine"
-                  />
-
-                  <!-- 표지 -->
-                  <div class="absolute inset-0 ml-[14px] rounded-sm shadow-lg overflow-hidden">
-                    <div class="absolute inset-0" :class="book.theme.cover" />
-
-                    <!-- 종이 질감 -->
+                    class="absolute inset-0 rounded-r-md shadow-md overflow-hidden border-l-[3px] border-black/10"
+                    :class="book.theme.cover"
+                  >
                     <div
-                      class="absolute inset-0
-                             bg-gradient-to-b
-                             from-white/30 via-transparent to-black/20"
+                      class="absolute inset-0 bg-gradient-to-tr from-black/5 via-transparent to-white/10"
                     />
 
-                    <!-- 중앙 타이틀 -->
                     <div
-                      class="absolute left-1/2 top-1/2 w-[92px]
-                             -translate-x-1/2 -translate-y-1/2
-                             bg-white/85 px-2 py-3 shadow-sm"
+                      class="absolute bottom-6 left-0 right-0 bg-white/90 backdrop-blur-sm py-2 px-3 transform translate-x-1 shadow-sm"
                     >
-                      <p class="text-[11px] font-medium text-[#2E2A24] text-center line-clamp-4">
+                      <p
+                        class="text-[10px] font-bold text-gray-800 tracking-tighter truncate"
+                      >
                         {{ book.title }}
                       </p>
+                      <div class="w-4 h-[1px] bg-gray-400 mt-1"></div>
                     </div>
 
-                    <!-- 하단 -->
                     <div
-                      class="absolute bottom-0 h-10 w-full"
-                      :class="book.theme.bottom"
-                    />
+                      class="absolute right-1 top-0 bottom-0 w-[1px] bg-black/5"
+                    ></div>
                   </div>
                 </div>
 
@@ -180,7 +171,7 @@
                 </div>
               </div>
 
-               <p
+              <p
                 v-if="!library.length"
                 class="col-span-full py-20 text-center text-sm text-gray-500"
               >
@@ -190,110 +181,105 @@
 
             <!-- 책 리뷰 -->
             <div v-else class="space-y-6">
-  <!-- 뒤로가기 -->
-  <button
-    class="text-sm text-[#6B675E] hover:underline"
-    @click="backToLibrary"
-  >
-    ← 내 서재
-  </button>
+              <!-- 뒤로가기 -->
+              <button
+                class="text-sm text-[#6B675E] hover:underline"
+                @click="backToLibrary"
+              >
+                ← 내 서재
+              </button>
 
-  <!-- ✅ 책 소개 헤더 (복구됨) -->
-  <div class="flex gap-6 items-start">
-    <!-- 책 오브젝트 (작은 버전) -->
-    <div class="relative w-28 h-40 flex-shrink-0">
-      <!-- 책등 -->
-      <div
-        class="absolute left-0 top-0 h-full w-[10px] shadow-inner"
-        :class="selectedBook.theme.spine"
-      />
+              <!-- ✅ 책 소개 헤더 (복구됨) -->
+              <div class="flex gap-6 items-start">
+                <!-- 책 오브젝트 (작은 버전) -->
+                <div class="relative w-28 h-40 flex-shrink-0">
+                  <!-- 책등 -->
+                  <div
+                    class="absolute left-0 top-0 h-full w-[10px] shadow-inner"
+                    :class="selectedBook.theme.spine"
+                  />
 
-      <!-- 표지 -->
-      <div
-        class="absolute inset-0 ml-[10px] rounded-sm shadow-md overflow-hidden"
-      >
-        <div class="absolute inset-0" :class="selectedBook.theme.cover" />
-        <div
-          class="absolute inset-0
-                 bg-gradient-to-b
-                 from-white/20 via-transparent to-black/20"
-        />
+                  <!-- 표지 -->
+                  <div
+                    class="absolute inset-0 ml-[10px] rounded-sm shadow-md overflow-hidden"
+                  >
+                    <div
+                      class="absolute inset-0"
+                      :class="selectedBook.theme.cover"
+                    />
+                    <div
+                      class="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/20"
+                    />
 
-        <!-- 중앙 타이틀 -->
-        <div
-          class="absolute left-1/2 top-1/2 w-[70px]
-                 -translate-x-1/2 -translate-y-1/2
-                 bg-white/85 px-2 py-2 shadow-sm"
-        >
-          <p
-            class="text-[10px] font-medium text-[#2E2A24]
-                   text-center line-clamp-4"
-          >
-            {{ selectedBook.title }}
-          </p>
-        </div>
+                    <!-- 중앙 타이틀 -->
+                    <div
+                      class="absolute left-1/2 top-1/2 w-[70px] -translate-x-1/2 -translate-y-1/2 bg-white/85 px-2 py-2 shadow-sm"
+                    >
+                      <p
+                        class="text-[10px] font-medium text-[#2E2A24] text-center line-clamp-4"
+                      >
+                        {{ selectedBook.title }}
+                      </p>
+                    </div>
 
-        <!-- 하단 -->
-        <div
-          class="absolute bottom-0 h-7 w-full"
-          :class="selectedBook.theme.bottom"
-        />
-      </div>
-    </div>
+                    <!-- 하단 -->
+                    <div
+                      class="absolute bottom-0 h-7 w-full"
+                      :class="selectedBook.theme.bottom"
+                    />
+                  </div>
+                </div>
 
-    <!-- 책 메타 정보 -->
-    <div class="min-w-0 flex-1 space-y-3">
-      <div class="space-y-1">
-        <p class="text-lg font-semibold text-[#2E2A24] leading-snug">
-          {{ selectedBook.title }}
-        </p>
-        <p class="text-sm text-[#7A766E]">
-          {{ selectedBook.author }}
-        </p>
-      </div>
+                <!-- 책 메타 정보 -->
+                <div class="min-w-0 flex-1 space-y-3">
+                  <div class="space-y-1">
+                    <p
+                      class="text-lg font-semibold text-[#2E2A24] leading-snug"
+                    >
+                      {{ selectedBook.title }}
+                    </p>
+                    <p class="text-sm text-[#7A766E]">
+                      {{ selectedBook.author }}
+                    </p>
+                  </div>
 
-      <!-- 태그 -->
-      <div class="flex flex-wrap gap-1.5">
-        <span
-          v-for="tag in selectedBookTags"
-          :key="tag"
-          class="rounded-full border border-[#E5E3DD]
-                 bg-[#F8F7F3]
-                 px-2.5 py-1 text-[11px] text-[#5E594F]"
-        >
-          #{{ tag }}
-        </span>
-      </div>
+                  <!-- 태그 -->
+                  <div class="flex flex-wrap gap-1.5">
+                    <span
+                      v-for="tag in selectedBookTags"
+                      :key="tag"
+                      class="rounded-full border border-[#E5E3DD] bg-[#F8F7F3] px-2.5 py-1 text-[11px] text-[#5E594F]"
+                    >
+                      #{{ tag }}
+                    </span>
+                  </div>
 
-      <!-- 문구 -->
-      <div class="flex items-center gap-2">
-        <span
-          class="inline-flex items-center rounded-full
-                 border border-[#DDD9CF]
-                 bg-white px-2.5 py-1
-                 text-[11px] text-[#6B675E]"
-        >
-          내 리뷰 {{ bookReviews.length }}개
-        </span>
-        <p class="text-xs text-[#8A867D]">
-          이 책에 남긴 나의 기록을 모아봤어요.
-        </p>
-      </div>
-    </div>
-  </div>
+                  <!-- 문구 -->
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="inline-flex items-center rounded-full border border-[#DDD9CF] bg-white px-2.5 py-1 text-[11px] text-[#6B675E]"
+                    >
+                      내 리뷰 {{ bookReviews.length }}개
+                    </span>
+                    <p class="text-xs text-[#8A867D]">
+                      이 책에 남긴 나의 기록을 모아봤어요.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-  <!-- 리뷰 리스트 -->
-  <div class="divide-y">
-    <ReviewCard v-for="r in bookReviews" :key="r.id" :review="r" />
+              <!-- 리뷰 리스트 -->
+              <div class="divide-y">
+                <ReviewCard v-for="r in bookReviews" :key="r.id" :review="r" />
 
-    <p
-      v-if="!bookReviews.length"
-      class="py-10 text-center text-sm text-gray-500"
-    >
-      이 책에 작성한 리뷰가 아직 없습니다.
-    </p>
-  </div>
-</div>
+                <p
+                  v-if="!bookReviews.length"
+                  class="py-10 text-center text-sm text-gray-500"
+                >
+                  이 책에 작성한 리뷰가 아직 없습니다.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </main>
@@ -347,29 +333,19 @@ const user = ref({
 ----------------------------- */
 const BOOK_THEMES = [
   {
-    cover: "bg-gradient-to-b from-[#F6F1EA] to-[#E7DDD0]",
-    spine: "bg-[#D9CCBB]",
-    bottom: "bg-[#CFC3B4]",
+    cover: "bg-[#EAE7E1]", // 미색 베이지
+    spine: "bg-[#D1CDC2]",
+    bottom: "bg-[#BDB8AC]",
   },
   {
-    cover: "bg-gradient-to-b from-[#EDF3F9] to-[#D9E6F2]",
-    spine: "bg-[#C7D6E5]",
-    bottom: "bg-[#BCCCDC]",
+    cover: "bg-[#3D4C5A]", // 딥 네이비 (흰색 글자 추천)
+    spine: "bg-[#2D3945]",
+    bottom: "bg-[#1E262E]",
   },
   {
-    cover: "bg-gradient-to-b from-[#EDF4F0] to-[#D9E8DE]",
-    spine: "bg-[#C7D7CD]",
-    bottom: "bg-[#BCCFC3]",
-  },
-  {
-    cover: "bg-gradient-to-b from-[#F6EEF0] to-[#E6D4D8]",
-    spine: "bg-[#D5C0C6]",
-    bottom: "bg-[#CCB5BA]",
-  },
-  {
-    cover: "bg-gradient-to-b from-[#F2F0F7] to-[#DED8EC]",
-    spine: "bg-[#CFC8E0]",
-    bottom: "bg-[#C5BDD8]",
+    cover: "bg-[#7B8B6F]", // 세이지 그린
+    spine: "bg-[#65735A]",
+    bottom: "bg-[#545F4B]",
   },
 ];
 
@@ -411,9 +387,7 @@ const toReviewCardFromLiked = (item) => ({
   contentAuthor: item.contentAuthor,
   contentCategoryId: item.contentCategoryId,
 
-  tags: Array.isArray(item.tags)
-    ? item.tags.map((t) => t.tagName)
-    : [],
+  tags: Array.isArray(item.tags) ? item.tags.map((t) => t.tagName) : [],
 
   // 날짜 / 메타
   createdAt: item.createdAt,
@@ -426,7 +400,6 @@ const toReviewCardFromLiked = (item) => ({
   // 이미지
   imageUrls: item.imageUrls ?? [],
 });
-
 
 /* -----------------------------
    User / Library / Reviews
@@ -498,10 +471,8 @@ const backToLibrary = () => {
 onMounted(async () => {
   const res = await getMyLikedReviews();
 
-  console.log(res)
-  likedReviews.value = (res.data.items ?? []).map(
-    toReviewCardFromLiked
-  );
+  console.log(res);
+  likedReviews.value = (res.data.items ?? []).map(toReviewCardFromLiked);
 
   stats.value.likeCount = likedReviews.value.length;
 });
