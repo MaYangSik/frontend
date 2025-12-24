@@ -6,7 +6,11 @@
       <div class="mb-4 flex gap-4 border-b text-sm">
         <button
           class="border-b-2 pb-3 pt-2"
-          :class="activeTab === 'recommend' ? 'border-gray-900 font-semibold text-gray-900' : 'border-transparent text-gray-500'"
+          :class="
+            activeTab === 'recommend'
+              ? 'border-gray-900 font-semibold text-gray-900'
+              : 'border-transparent text-gray-500'
+          "
           @click="activeTab = 'recommend'"
         >
           추천
@@ -14,7 +18,11 @@
         <button
           v-if="isLoggedIn"
           class="pb-3 pt-2 text-gray-400"
-          :class="activeTab === 'following' ? 'border-b-2 border-gray-900 font-semibold text-gray-900' : 'border-transparent text-gray-500'"
+          :class="
+            activeTab === 'following'
+              ? 'border-b-2 border-gray-900 font-semibold text-gray-900'
+              : 'border-transparent text-gray-500'
+          "
           @click="activeTab = 'following'"
         >
           팔로잉
@@ -29,11 +37,16 @@
           :review="item"
           :is-logged-in="isLoggedIn"
         />
-        <p v-if="!isLoading && !reviews.length" class="py-8 text-center text-sm text-gray-500">
+        <p
+          v-if="!isLoading && !reviews.length"
+          class="py-8 text-center text-sm text-gray-500"
+        >
           표시할 리뷰가 없습니다.
         </p>
         <div ref="sentinel" class="h-1"></div>
-        <p v-if="isLoadingMore" class="py-4 text-center text-xs text-gray-400">불러오는 중...</p>
+        <p v-if="isLoadingMore" class="py-4 text-center text-xs text-gray-400">
+          불러오는 중...
+        </p>
       </div>
     </section>
 
@@ -75,7 +88,11 @@ const formatDateLabel = (iso) => {
 };
 
 const normalizeList = (payload) => {
-  const list = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.items)
+    ? payload.items
+    : [];
   return list.map((r) => {
     const tagNames = Array.isArray(r.tags)
       ? r.tags.map((t) => t?.tagName ?? t).filter(Boolean)
@@ -91,8 +108,9 @@ const normalizeList = (payload) => {
       contentAuthor: r.contentAuthor,
       contentCategoryId: r.contentCategoryId,
       categoryLabel: "", // 필요시 매핑
-      spoiler: r.spoilerUntil != null && Number(r.spoilerUntil) > 0,
-      spoilerUntil: r.spoilerUntil,
+      spoilerUntil: Number(r.spoilerUntil ?? 0),
+      spoiler: Boolean(r.spoiler),
+      myProgress: r.myProgress ?? null,
       likeCount: r.likeCount,
       viewCount: r.viewCount,
       likedByMe: r.likedByMe,

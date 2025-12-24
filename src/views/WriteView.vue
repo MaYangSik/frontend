@@ -125,33 +125,38 @@
           <label class="mb-2 block text-xs font-semibold text-gray-600"
             >리뷰 이미지 등록</label
           >
-          <div class="flex items-center gap-3">
+          <div class="flex gap-3">
+            <!-- 이미지 슬롯 -->
+            <input
+              ref="fileInput"
+              type="file"
+              multiple
+              accept="image/*"
+              class="hidden"
+              @change="onImageUpload"
+            />
             <div
-              v-if="imagePreview"
-              class="relative h-24 w-24 overflow-hidden rounded-lg border bg-gray-50"
+              v-for="(preview, index) in imagePreviews"
+              :key="index"
+              class="relative h-24 w-24 rounded-lg border overflow-hidden"
             >
-              <img
-                :src="imagePreview"
-                alt="리뷰 이미지"
-                class="h-full w-full object-cover"
-              />
+              <img :src="preview" class="h-full w-full object-cover" />
               <button
-                @click="removeImage"
-                class="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-700 text-[10px] text-white"
+                @click="removeImage(index)"
+                class="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/60 text-white text-[10px]"
               >
                 ✕
               </button>
             </div>
-            <div
-              v-else
-              class="flex h-24 w-24 items-center justify-center rounded-lg bg-gray-100 text-sm text-gray-400"
+            <!-- 추가 버튼 -->
+            <button
+              v-if="imagePreviews.length < 4"
+              type="button"
+              @click="openFilePicker"
+              class="flex h-24 w-24 items-center justify-center rounded-lg bg-gray-100 border border-dashed text-gray-400 hover:bg-gray-50"
             >
-              No Image
-            </div>
-            <div class="flex flex-col text-xs text-gray-500">
-              <input type="file" @change="onImageUpload" accept="image/*" />
-              <p class="mt-1">최대 10MB 이미지 파일을 업로드할 수 있습니다.</p>
-            </div>
+              +
+            </button>
           </div>
         </div>
 
@@ -159,13 +164,23 @@
           <label class="mb-1 block text-xs font-semibold text-gray-600"
             >태그</label
           >
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <input
               v-model="tagInput"
               @keyup.enter.prevent="addTag"
               placeholder="#태그 입력 후 엔터"
               class="rounded-full border px-3 py-1 text-xs focus:border-blue-500 focus:outline-none"
             />
+            <button
+              type="button"
+              class="rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 disabled:opacity-60"
+              @click="generateTags"
+              :disabled="isTagGenerating"
+            >
+              {{ isTagGenerating ? "생성 중..." : "태그 자동생성" }}
+            </button>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 mt-2">
             <div class="flex flex-wrap gap-1">
               <button
                 v-for="tag in form.tags"
@@ -197,7 +212,9 @@
 import { ref, reactive } from "vue";
 import { searchContents } from "@/api/content";
 import { createReview } from "@/api/review";
+import api from "@/api/axios";
 import { useRouter } from "vue-router";
+import { getPresign } from "@/api/user";
 
 const searchQuery = ref("");
 const suggestions = ref([]);
@@ -205,6 +222,7 @@ const selectedBook = ref(null);
 const imagePreview = ref(null);
 const tagInput = ref("");
 const router = useRouter();
+const fileInput = ref(null);
 
 const form = reactive({
   title: "",
@@ -213,7 +231,10 @@ const form = reactive({
   image: null,
   contentId: null,
   spoilerUntil: 0,
+  images: [],
+  imageUrls: [],
 });
+const isTagGenerating = ref(false);
 
 let searchTimer = null;
 const onInput = () => {
@@ -263,16 +284,58 @@ const clearSelection = () => {
 };
 
 // 이미지 업로드
-const onImageUpload = (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    form.image = file;
-    imagePreview.value = URL.createObjectURL(file);
-  }
+const imagePreviews = ref([]);
+
+const openFilePicker = () => {
+  fileInput.value?.click();
 };
-const removeImage = () => {
-  form.image = null;
-  imagePreview.value = null;
+
+const onImageUpload = (e) => {
+  const files = Array.from(e.target.files);
+
+  if (form.images.length + files.length > 4) {
+    alert("리뷰 이미지는 최대 4개까지 업로드할 수 있습니다.");
+    return;
+  }
+
+  files.forEach((file) => {
+    form.images.push(file);
+    imagePreviews.value.push(URL.createObjectURL(file));
+  });
+
+  e.target.value = ""; // 동일 파일 재선택 가능하도록
+};
+
+const removeImage = (index) => {
+  form.images.splice(index, 1);
+  imagePreviews.value.splice(index, 1);
+};
+
+const uploadReviewImages = async () => {
+  const uploadedKeys = [];
+
+  for (const file of form.images) {
+    const extension = file.name.split(".").pop().toLowerCase();
+
+    const presignRes = await getPresign({
+      domain: "REVIEW",
+      extension,
+    });
+
+    const { uploadUrl, objectKey } = presignRes.data;
+
+    await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type,
+      },
+      body: file,
+    });
+
+    uploadedKeys.push(objectKey);
+  }
+
+  return uploadedKeys;
 };
 
 // 태그
@@ -285,6 +348,27 @@ const addTag = () => {
 };
 const removeTag = (tag) => {
   form.tags = form.tags.filter((t) => t !== tag);
+};
+
+const generateTags = async () => {
+  if (!form.content.trim()) {
+    alert("리뷰 내용을 먼저 입력해주세요.");
+    return;
+  }
+  isTagGenerating.value = true;
+  try {
+    const { data } = await api.post("/api/ai/review/tags", {
+      review: form.content,
+    });
+    const newTags = Array.isArray(data?.tags) ? data.tags : [];
+    const merged = Array.from(new Set([...form.tags, ...newTags])).slice(0, 10);
+    form.tags = merged;
+  } catch (e) {
+    console.error("태그 생성 실패", e);
+    alert("태그 자동생성에 실패했습니다.");
+  } finally {
+    isTagGenerating.value = false;
+  }
 };
 
 // 리뷰 등록
@@ -302,19 +386,25 @@ const submitReview = async () => {
     return;
   }
 
-  const payload = {
-    contentId: form.contentId,
-    title: form.title,
-    content: form.content,
-    spoilerUntil: Number(form.spoilerUntil) || 0,
-    tags: form.tags, // TODO: 태그 ID 선택 로직이 생기면 교체
-    imageUrls: form.imageUrls, // TODO: 이미지 업로드 API 연동 후 교체
-  };
-
   try {
+    if (form.images.length > 0) {
+      form.imageUrls = await uploadReviewImages();
+    }
+
+    const payload = {
+      contentId: form.contentId,
+      title: form.title,
+      content: form.content,
+      spoilerUntil: Number(form.spoilerUntil) || 0,
+      tags: form.tags, // TODO: 태그 ID 선택 로직이 생기면 교체
+      imageUrls: form.imageUrls, // TODO: 이미지 업로드 API 연동 후 교체
+    };
+
     const { data } = await createReview(payload);
+
     alert("리뷰가 등록되었습니다!");
     router.push({ name: "home" });
+
     return data;
   } catch (e) {
     console.error("리뷰 등록 실패", e);

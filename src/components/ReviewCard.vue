@@ -31,9 +31,15 @@
               <span v-if="review.contentAuthor" class="ml-1 text-gray-400"
                 >· {{ review.contentAuthor }}</span
               >
-              <span v-if="spoilerRangeLabel" class="ml-1 text-amber-700"
-                >({{ spoilerRangeLabel }})</span
+              <span
+                v-if="review.spoilerUntil != null && review.spoilerUntil > 0"
+                class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 ml-2 text-[11px] font-medium text-amber-700"
               >
+                스포 {{ review.spoilerUntil }}{{ unitLabel }}
+              </span>
+              <!-- <span v-if="spoilerRangeLabel" class="ml-1 text-amber-700"
+                >({{ spoilerRangeLabel }})</span
+              > -->
             </p>
           </div>
           <div class="ml-auto text-xs text-gray-400">
@@ -112,94 +118,62 @@ import { useRouter } from "vue-router";
 import { toggleReviewLike } from "@/api/review";
 
 const props = defineProps({
-  review: {
-    type: Object,
-    required: true,
-  },
-  isLoggedIn: {
-    type: Boolean,
-    default: true,
-  },
+  review: { type: Object, required: true },
+  isLoggedIn: { type: Boolean, default: true },
 });
 
+/* --------------------
+   Spoiler logic (단일 기준)
+-------------------- */
 const revealed = ref(false);
+
+const isSpoiler = computed(() => props.review.spoiler);
+
 const toggleReveal = () => {
   revealed.value = !revealed.value;
 };
 
-const likeCount = ref(props.review?.likeCount ?? 0);
-const likedByMe = ref(Boolean(props.review?.likedByMe));
+/* --------------------
+   Like
+-------------------- */
+const likeCount = ref(props.review.likeCount ?? 0);
+const likedByMe = ref(Boolean(props.review.likedByMe));
 const isLiking = ref(false);
 
 watch(
   () => props.review,
-  (next) => {
-    likeCount.value = next?.likeCount ?? 0;
-    likedByMe.value = Boolean(next?.likedByMe);
+  (r) => {
+    likeCount.value = r.likeCount ?? 0;
+    likedByMe.value = Boolean(r.likedByMe);
   }
 );
 
 const handleLike = async () => {
-  if (!props.review?.id || isLiking.value || !props.isLoggedIn) return;
+  if (!props.isLoggedIn || isLiking.value) return;
   isLiking.value = true;
   try {
     const { data } = await toggleReviewLike(props.review.id);
-    likeCount.value = data?.likeCount ?? likeCount.value;
-    likedByMe.value = Boolean(data?.liked);
-  } catch (error) {
-    console.error("리뷰 좋아요 토글 실패", error);
+    likeCount.value = data.likeCount;
+    likedByMe.value = data.liked;
   } finally {
     isLiking.value = false;
   }
 };
 
-const router = useRouter();
-const goDetail = () => {
-  if (!props.review?.id) return;
-  router.push({ name: "reviewDetail", params: { reviewId: props.review.id } });
-};
-
+/* --------------------
+   UI helpers
+-------------------- */
 const initial = computed(() => {
   const src = props.review.authorNickname || props.review.userId || "";
-  return src ? src.charAt(0) : "?";
+  return src.charAt(0) || "?";
 });
 
-const isSpoiler = computed(() => {
-  const until = props.review.spoilerUntil;
-  const baseProtected =
-    props.review.spoiler ??
-    props.review.isSpoiler ??
-    props.review.spoilerProtected ??
-    (until != null && until > 0);
+const unitLabel = computed(() =>
+  Number(props.review.contentCategoryId) === 1 ? "권" : "화"
+);
 
-  const myProgress =
-    props.review.myProgress ?? props.review.myProgressAtWrite ?? null;
-
-  if (
-    baseProtected &&
-    until != null &&
-    myProgress != null &&
-    myProgress >= until
-  ) {
-    return false; // 내가 본 진행도 이상이면 블러 해제
-  }
-  return baseProtected;
-});
-
-const unitLabel = computed(() => {
-  const catId = Number(props.review.contentCategoryId);
-  if (!Number.isNaN(catId)) {
-    return catId === 1 ? "권" : "화"; // 1: 도서, 그 외: 화 단위
-  }
-  const cat = (props.review.categoryLabel || "").toLowerCase();
-  if (cat.includes("도서") || cat.includes("book")) return "권";
-  return "화";
-});
-
-const spoilerRangeLabel = computed(() => {
-  if (props.review.spoilerUntil != null) {
-    return `스포 ${props.review.spoilerUntil}${unitLabel.value}까지`;
-  }
-  return "";
-});
+const router = useRouter();
+const goDetail = () => {
+  router.push({ name: "reviewDetail", params: { reviewId: props.review.id } });
+};
 </script>
