@@ -40,7 +40,7 @@
             <span class="shrink-0">
               {{ review.createdAtLabel }}
             </span>
-            <span class="text-gray-300"> · </span>
+            <!-- <span class="text-gray-300"> · </span> -->
             <!-- <span>조회 {{ review.viewCount ?? 0 }}</span> -->
           </div>
         </div>
